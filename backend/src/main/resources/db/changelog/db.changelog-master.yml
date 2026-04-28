@@ -1,7 +1,274 @@
 databaseChangeLog:
   - changeSet:
-      id: 001-initial-empty
+      id: 001-create-assets-table
       author: vlad
       changes:
-        - sql:
-            sql: SELECT 1;
+        - createTable:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: ticker
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: asset_type
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: exchange
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: currency
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: isin
+                  type: VARCHAR(32)
+
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: assets
+            columnNames: ticker, exchange
+            constraintName: uk_assets_ticker_exchange
+
+  - changeSet:
+      id: 002-insert-demo-assets
+      author: vlad
+      changes:
+        - insert:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  value: "11111111-1111-1111-1111-111111111111"
+              - column:
+                  name: ticker
+                  value: "SBER"
+              - column:
+                  name: name
+                  value: "Сбербанк"
+              - column:
+                  name: asset_type
+                  value: "STOCK"
+              - column:
+                  name: exchange
+                  value: "MOEX"
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: isin
+                  value: "RU0009029540"
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueDate: "2026-04-28T00:00:00"
+              - column:
+                  name: updated_at
+                  valueDate: "2026-04-28T00:00:00"
+
+        - insert:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  value: "22222222-2222-2222-2222-222222222222"
+              - column:
+                  name: ticker
+                  value: "GAZP"
+              - column:
+                  name: name
+                  value: "Газпром"
+              - column:
+                  name: asset_type
+                  value: "STOCK"
+              - column:
+                  name: exchange
+                  value: "MOEX"
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: isin
+                  value: "RU0007661625"
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueDate: "2026-04-28T00:00:00"
+              - column:
+                  name: updated_at
+                  valueDate: "2026-04-28T00:00:00"
+
+        - insert:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  value: "33333333-3333-3333-3333-333333333333"
+              - column:
+                  name: ticker
+                  value: "LKOH"
+              - column:
+                  name: name
+                  value: "Лукойл"
+              - column:
+                  name: asset_type
+                  value: "STOCK"
+              - column:
+                  name: exchange
+                  value: "MOEX"
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: isin
+                  value: "RU0009024277"
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueDate: "2026-04-28T00:00:00"
+              - column:
+                  name: updated_at
+                  valueDate: "2026-04-28T00:00:00"
+
+        - insert:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  value: "44444444-4444-4444-4444-444444444444"
+              - column:
+                  name: ticker
+                  value: "YNDX"
+              - column:
+                  name: name
+                  value: "Яндекс"
+              - column:
+                  name: asset_type
+                  value: "STOCK"
+              - column:
+                  name: exchange
+                  value: "MOEX"
+              - column:
+                  name: currency
+                  value: "RUB"
+              - column:
+                  name: isin
+                  value: "RU000A107T19"
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueDate: "2026-04-28T00:00:00"
+              - column:
+                  name: updated_at
+                  valueDate: "2026-04-28T00:00:00"
+
+        - insert:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  value: "55555555-5555-5555-5555-555555555555"
+              - column:
+                  name: ticker
+                  value: "BTCUSDT"
+              - column:
+                  name: name
+                  value: "Bitcoin / Tether"
+              - column:
+                  name: asset_type
+                  value: "CRYPTO"
+              - column:
+                  name: exchange
+                  value: "BINANCE"
+              - column:
+                  name: currency
+                  value: "USDT"
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueDate: "2026-04-28T00:00:00"
+              - column:
+                  name: updated_at
+                  valueDate: "2026-04-28T00:00:00"
+
+        - insert:
+            tableName: assets
+            columns:
+              - column:
+                  name: id
+                  value: "66666666-6666-6666-6666-666666666666"
+              - column:
+                  name: ticker
+                  value: "ETHUSDT"
+              - column:
+                  name: name
+                  value: "Ethereum / Tether"
+              - column:
+                  name: asset_type
+                  value: "CRYPTO"
+              - column:
+                  name: exchange
+                  value: "BINANCE"
+              - column:
+                  name: currency
+                  value: "USDT"
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueDate: "2026-04-28T00:00:00"
+              - column:
+                  name: updated_at
+                  valueDate: "2026-04-28T00:00:00"
