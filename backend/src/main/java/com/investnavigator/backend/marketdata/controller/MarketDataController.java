@@ -6,6 +6,7 @@ import com.investnavigator.backend.marketdata.model.Timeframe;
 import com.investnavigator.backend.marketdata.service.MarketDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.investnavigator.backend.common.error.BadRequestException;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class MarketDataController {
             case "15M" -> Timeframe.FIFTEEN_MINUTES;
             case "1H" -> Timeframe.ONE_HOUR;
             case "1D" -> Timeframe.ONE_DAY;
-            default -> throw new IllegalArgumentException("Unsupported timeframe: " + timeframe);
+            default -> throw new BadRequestException("Unsupported timeframe: " + timeframe);
         };
     }
 }

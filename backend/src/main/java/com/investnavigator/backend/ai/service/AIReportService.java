@@ -12,6 +12,7 @@ import com.investnavigator.backend.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.investnavigator.backend.common.error.ResourceNotFoundException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -36,7 +37,7 @@ public class AIReportService {
     @Transactional
     public AIReportResponse generateReport(String ticker) {
         Asset asset = assetRepository.findByTickerIgnoreCase(ticker)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
 
         AnalyticsSummaryResponse analytics = analyticsService.getSummary(ticker);
 
@@ -60,7 +61,7 @@ public class AIReportService {
     @Transactional(readOnly = true)
     public List<AIReportResponse> getReportsByTicker(String ticker) {
         Asset asset = assetRepository.findByTickerIgnoreCase(ticker)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
 
         return aiReportRepository.findByAssetOrderByCreatedAtDesc(asset)
                 .stream()
@@ -72,7 +73,7 @@ public class AIReportService {
     public AIReportResponse getReportById(UUID reportId) {
         return aiReportRepository.findById(reportId)
                 .map(aiReportMapper::toResponse)
-                .orElseThrow(() -> new IllegalArgumentException("AI report not found: " + reportId));
+                .orElseThrow(() -> new ResourceNotFoundException("AI report not found: " + reportId));
     }
 
     private String buildSummary(AnalyticsSummaryResponse analytics) {

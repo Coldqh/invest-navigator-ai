@@ -11,6 +11,7 @@ import com.investnavigator.backend.marketdata.repository.MarketPriceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.investnavigator.backend.common.error.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class MarketDataService {
 
         return marketPriceRepository.findTopByAssetOrderByTimestampDesc(asset)
                 .map(marketDataMapper::toMarketPriceResponse)
-                .orElseThrow(() -> new IllegalArgumentException("Market price not found for asset: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Market price not found for asset: " + ticker));
     }
 
     public List<CandleResponse> getCandles(String ticker, Timeframe timeframe) {
@@ -43,6 +44,6 @@ public class MarketDataService {
 
     private Asset findAssetByTicker(String ticker) {
         return assetRepository.findByTickerIgnoreCase(ticker)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
     }
 }

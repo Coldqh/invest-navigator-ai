@@ -12,6 +12,7 @@ import com.investnavigator.backend.marketdata.repository.MarketPriceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.investnavigator.backend.common.error.ResourceNotFoundException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,10 +32,10 @@ public class AnalyticsService {
 
     public AnalyticsSummaryResponse getSummary(String ticker) {
         Asset asset = assetRepository.findByTickerIgnoreCase(ticker)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
 
         MarketPrice currentMarketPrice = marketPriceRepository.findTopByAssetOrderByTimestampDesc(asset)
-                .orElseThrow(() -> new IllegalArgumentException("Market price not found for asset: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Market price not found for asset: " + ticker));
 
         List<Candle> candles = candleRepository
                 .findTop30ByAssetAndTimeframeOrderByTimestampDesc(asset, Timeframe.ONE_DAY)
@@ -43,7 +44,7 @@ public class AnalyticsService {
                 .toList();
 
         if (candles.isEmpty()) {
-            throw new IllegalArgumentException("Candles not found for asset: " + ticker);
+            throw new ResourceNotFoundException("Candles not found for asset: " + ticker);
         }
 
         BigDecimal firstClose = candles.getFirst().getClose();

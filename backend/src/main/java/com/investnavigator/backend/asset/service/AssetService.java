@@ -6,6 +6,7 @@ import com.investnavigator.backend.asset.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.investnavigator.backend.common.error.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -39,6 +40,6 @@ public class AssetService {
     public AssetResponse getAssetByTicker(String ticker) {
         return assetRepository.findByTickerIgnoreCase(ticker)
                 .map(assetMapper::toResponse)
-                .orElseThrow(() -> new IllegalArgumentException("Asset not found: " + ticker));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
     }
 }
