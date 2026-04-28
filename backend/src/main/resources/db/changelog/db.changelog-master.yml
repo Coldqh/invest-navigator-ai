@@ -272,3 +272,407 @@ databaseChangeLog:
               - column:
                   name: updated_at
                   valueDate: "2026-04-28T00:00:00"
+
+  - changeSet:
+      id: 003-create-market-prices-table
+      author: vlad
+      changes:
+        - createTable:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: asset_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: price
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: volume
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: source
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: market_prices
+            baseColumnNames: asset_id
+            constraintName: fk_market_prices_asset
+            referencedTableName: assets
+            referencedColumnNames: id
+
+        - createIndex:
+            tableName: market_prices
+            indexName: idx_market_prices_asset_id
+            columns:
+              - column:
+                  name: asset_id
+
+        - createIndex:
+            tableName: market_prices
+            indexName: idx_market_prices_timestamp
+            columns:
+              - column:
+                  name: timestamp
+
+  - changeSet:
+      id: 004-create-candles-table
+      author: vlad
+      changes:
+        - createTable:
+            tableName: candles
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: asset_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: timeframe
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: open
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: high
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: low
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: close
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: volume
+                  type: DECIMAL(19, 6)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: source
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: candles
+            baseColumnNames: asset_id
+            constraintName: fk_candles_asset
+            referencedTableName: assets
+            referencedColumnNames: id
+
+        - addUniqueConstraint:
+            tableName: candles
+            columnNames: asset_id, timeframe, timestamp
+            constraintName: uk_candles_asset_timeframe_timestamp
+
+        - createIndex:
+            tableName: candles
+            indexName: idx_candles_asset_id
+            columns:
+              - column:
+                  name: asset_id
+
+        - createIndex:
+            tableName: candles
+            indexName: idx_candles_timeframe
+            columns:
+              - column:
+                  name: timeframe
+
+        - createIndex:
+            tableName: candles
+            indexName: idx_candles_timestamp
+            columns:
+              - column:
+                  name: timestamp
+
+  - changeSet:
+      id: 005-insert-demo-market-data
+      author: vlad
+      changes:
+        - insert:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  value: "aaaaaaa1-1111-1111-1111-111111111111"
+              - column:
+                  name: asset_id
+                  value: "11111111-1111-1111-1111-111111111111"
+              - column:
+                  name: price
+                  valueNumeric: 315.500000
+              - column:
+                  name: volume
+                  valueNumeric: 12500000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T10:00:00"
+
+        - insert:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  value: "aaaaaaa2-2222-2222-2222-222222222222"
+              - column:
+                  name: asset_id
+                  value: "22222222-2222-2222-2222-222222222222"
+              - column:
+                  name: price
+                  valueNumeric: 168.200000
+              - column:
+                  name: volume
+                  valueNumeric: 9800000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T10:00:00"
+
+        - insert:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  value: "aaaaaaa3-3333-3333-3333-333333333333"
+              - column:
+                  name: asset_id
+                  value: "33333333-3333-3333-3333-333333333333"
+              - column:
+                  name: price
+                  valueNumeric: 7450.000000
+              - column:
+                  name: volume
+                  valueNumeric: 2100000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T10:00:00"
+
+        - insert:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  value: "aaaaaaa4-4444-4444-4444-444444444444"
+              - column:
+                  name: asset_id
+                  value: "44444444-4444-4444-4444-444444444444"
+              - column:
+                  name: price
+                  valueNumeric: 4320.000000
+              - column:
+                  name: volume
+                  valueNumeric: 1800000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T10:00:00"
+
+        - insert:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  value: "aaaaaaa5-5555-5555-5555-555555555555"
+              - column:
+                  name: asset_id
+                  value: "55555555-5555-5555-5555-555555555555"
+              - column:
+                  name: price
+                  valueNumeric: 68450.000000
+              - column:
+                  name: volume
+                  valueNumeric: 24500.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T10:00:00"
+
+        - insert:
+            tableName: market_prices
+            columns:
+              - column:
+                  name: id
+                  value: "aaaaaaa6-6666-6666-6666-666666666666"
+              - column:
+                  name: asset_id
+                  value: "66666666-6666-6666-6666-666666666666"
+              - column:
+                  name: price
+                  valueNumeric: 3420.000000
+              - column:
+                  name: volume
+                  valueNumeric: 182000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T10:00:00"
+
+        - insert:
+            tableName: candles
+            columns:
+              - column:
+                  name: id
+                  value: "bbbbbbb1-1111-1111-1111-111111111111"
+              - column:
+                  name: asset_id
+                  value: "11111111-1111-1111-1111-111111111111"
+              - column:
+                  name: timeframe
+                  value: "ONE_DAY"
+              - column:
+                  name: open
+                  valueNumeric: 300.000000
+              - column:
+                  name: high
+                  valueNumeric: 318.000000
+              - column:
+                  name: low
+                  valueNumeric: 298.500000
+              - column:
+                  name: close
+                  valueNumeric: 315.500000
+              - column:
+                  name: volume
+                  valueNumeric: 12500000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-24T00:00:00"
+
+        - insert:
+            tableName: candles
+            columns:
+              - column:
+                  name: id
+                  value: "bbbbbbb2-2222-2222-2222-222222222222"
+              - column:
+                  name: asset_id
+                  value: "11111111-1111-1111-1111-111111111111"
+              - column:
+                  name: timeframe
+                  value: "ONE_DAY"
+              - column:
+                  name: open
+                  valueNumeric: 315.500000
+              - column:
+                  name: high
+                  valueNumeric: 320.000000
+              - column:
+                  name: low
+                  valueNumeric: 310.000000
+              - column:
+                  name: close
+                  valueNumeric: 318.200000
+              - column:
+                  name: volume
+                  valueNumeric: 13200000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-25T00:00:00"
+
+        - insert:
+            tableName: candles
+            columns:
+              - column:
+                  name: id
+                  value: "bbbbbbb3-3333-3333-3333-333333333333"
+              - column:
+                  name: asset_id
+                  value: "11111111-1111-1111-1111-111111111111"
+              - column:
+                  name: timeframe
+                  value: "ONE_DAY"
+              - column:
+                  name: open
+                  valueNumeric: 318.200000
+              - column:
+                  name: high
+                  valueNumeric: 322.000000
+              - column:
+                  name: low
+                  valueNumeric: 312.000000
+              - column:
+                  name: close
+                  valueNumeric: 315.500000
+              - column:
+                  name: volume
+                  valueNumeric: 11800000.000000
+              - column:
+                  name: source
+                  value: "DEMO"
+              - column:
+                  name: timestamp
+                  valueDate: "2026-04-28T00:00:00"
