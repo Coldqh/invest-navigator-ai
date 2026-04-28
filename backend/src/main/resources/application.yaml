@@ -1,3 +1,24 @@
+server:
+  port: 8080
+
 spring:
   application:
-    name: backend
+    name: invest-navigator-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/invest_navigator
+    username: invest_user
+    password: invest_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yml

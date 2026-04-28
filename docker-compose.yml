@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: invest_navigator_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: invest_navigator
+      POSTGRES_USER: invest_user
+      POSTGRES_PASSWORD: invest_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - invest_navigator_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  invest_navigator_postgres_data:

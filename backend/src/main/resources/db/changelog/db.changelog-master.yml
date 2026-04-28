@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-initial-empty
+      author: vlad
+      changes:
+        - sql:
+            sql: SELECT 1;
