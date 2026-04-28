@@ -1,0 +1,36 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Java / Maven / Gradle
+target/
+build/
+.gradle/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
