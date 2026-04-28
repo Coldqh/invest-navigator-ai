@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface CandleRepository extends JpaRepository<Candle, UUID> {
 
     List<Candle> findByAssetAndTimeframeOrderByTimestampAsc(Asset asset, Timeframe timeframe);
+
+    List<Candle> findTop30ByAssetAndTimeframeOrderByTimestampDesc(Asset asset, Timeframe timeframe);
 }
