@@ -4,6 +4,7 @@ import { AssetDetailsPage } from "./pages/AssetDetailsPage";
 import { AssetsPage } from "./pages/AssetsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ComparePage } from "./pages/ComparePage";
 
 export function App() {
     return (
@@ -13,6 +14,7 @@ export function App() {
                 <Route path="assets" element={<AssetsPage />} />
                 <Route path="assets/:ticker" element={<AssetDetailsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
+                <Route path="compare" element={<ComparePage />} />
             </Route>
         </Routes>
     );

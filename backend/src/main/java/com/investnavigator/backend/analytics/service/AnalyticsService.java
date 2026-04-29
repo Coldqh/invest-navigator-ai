@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.investnavigator.backend.common.error.ResourceNotFoundException;
+import com.investnavigator.backend.common.error.BadRequestException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -176,5 +177,25 @@ public class AnalyticsService {
         }
 
         return RiskLevel.LOW;
+    }
+
+    public List<AnalyticsSummaryResponse> compareAssets(List<String> tickers) {
+        List<String> normalizedTickers = tickers.stream()
+                .filter(ticker -> ticker != null && !ticker.isBlank())
+                .map(ticker -> ticker.trim().toUpperCase())
+                .distinct()
+                .toList();
+
+        if (normalizedTickers.size() < 2) {
+            throw new BadRequestException("You must compare at least 2 different assets");
+        }
+
+        if (normalizedTickers.size() > 5) {
+            throw new BadRequestException("You can compare no more than 5 assets");
+        }
+
+        return normalizedTickers.stream()
+                .map(this::getSummary)
+                .toList();
     }
 }

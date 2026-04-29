@@ -19,6 +19,9 @@ export function AppLayout() {
                     <NavLink to="/assets">
                         Активы
                     </NavLink>
+                    <NavLink to="/compare">
+                        Сравнение
+                    </NavLink>
                 </nav>
             </aside>
 

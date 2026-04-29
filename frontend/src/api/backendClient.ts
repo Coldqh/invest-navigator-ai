@@ -64,4 +64,11 @@ export const backendClient = {
     getAIReports(ticker: string): Promise<AIReportResponse[]> {
         return request<AIReportResponse[]>(`/api/ai/reports/${ticker}`);
     },
+
+    compareAssets(tickers: string[]): Promise<AnalyticsSummaryResponse[]> {
+        return request<AnalyticsSummaryResponse[]>("/api/analytics/compare", {
+            method: "POST",
+            body: JSON.stringify({ tickers }),
+        });
+    },
 };
