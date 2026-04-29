@@ -21,6 +21,7 @@ export function AssetDetailsPage() {
     const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse | null>(null);
     const [reports, setReports] = useState<AIReportResponse[]>([]);
 
+    const [isRefreshingMarketData, setIsRefreshingMarketData] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [error, setError] = useState("");
@@ -98,6 +99,27 @@ export function AssetDetailsPage() {
         }
     }
 
+    async function handleRefreshMarketData() {
+        if (!ticker) {
+            return;
+        }
+
+        setIsRefreshingMarketData(true);
+        setError("");
+
+        try {
+            const refreshedMarketData = await backendClient.refreshMarketData(ticker);
+            setMarketData(refreshedMarketData);
+
+            const refreshedAnalytics = await backendClient.getAnalyticsSummary(ticker);
+            setAnalytics(refreshedAnalytics);
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "Не удалось обновить рыночные данные");
+        } finally {
+            setIsRefreshingMarketData(false);
+        }
+    }
+
     if (isLoading) {
         return <LoadingBlock text="Загружаем карточку актива..." />;
     }
@@ -130,10 +152,21 @@ export function AssetDetailsPage() {
                         <p>{asset.name}</p>
                     </div>
 
-                    <div className="badge-row">
-                        <span>{asset.assetType}</span>
-                        <span>{asset.currency}</span>
-                        <span>{asset.active ? "Active" : "Inactive"}</span>
+                    <div className="asset-header-side">
+                        <div className="badge-row">
+                            <span>{asset.assetType}</span>
+                            <span>{asset.currency}</span>
+                            <span>{asset.active ? "Active" : "Inactive"}</span>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="ghost-button"
+                            disabled={isRefreshingMarketData}
+                            onClick={handleRefreshMarketData}
+                        >
+                            {isRefreshingMarketData ? "Обновляем..." : "Обновить цену"}
+                        </button>
                     </div>
                 </div>
             )}

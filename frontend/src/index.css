@@ -681,3 +681,15 @@ code {
     justify-items: start;
   }
 }
+
+.asset-header-side {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .asset-header-side {
+    justify-items: start;
+  }
+}

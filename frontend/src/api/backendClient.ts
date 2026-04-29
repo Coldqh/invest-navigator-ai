@@ -71,4 +71,10 @@ export const backendClient = {
             body: JSON.stringify({ tickers }),
         });
     },
+
+    refreshMarketData(ticker: string): Promise<MarketPriceResponse> {
+        return request<MarketPriceResponse>(`/api/market-data/refresh/${ticker}`, {
+            method: "POST",
+        });
+    },
 };
