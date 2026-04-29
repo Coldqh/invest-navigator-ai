@@ -113,7 +113,7 @@ public class AIProviderHealthService {
             return new AIProviderHealthItemResponse(
                     type,
                     AIProviderHealthStatus.AVAILABLE,
-                    displayName + " provider is configured and available",
+                    displayName + " provider is configured and implementation is available",
                     checkedAt
             );
         } catch (RuntimeException exception) {
