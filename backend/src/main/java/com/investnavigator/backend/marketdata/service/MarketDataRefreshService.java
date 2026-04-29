@@ -14,8 +14,11 @@ import com.investnavigator.backend.marketdata.provider.MarketDataProviderRegistr
 import com.investnavigator.backend.marketdata.provider.MarketDataProviderType;
 import com.investnavigator.backend.marketdata.repository.MarketPriceRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -25,6 +28,8 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 @RequiredArgsConstructor
 public class MarketDataRefreshService {
+
+    private static final Logger log = LoggerFactory.getLogger(MarketDataRefreshService.class);
 
     private static final int SCALE = 6;
 
@@ -41,7 +46,7 @@ public class MarketDataRefreshService {
 
         if (marketDataProperties.provider() == MarketDataProviderType.HYBRID
                 && asset.getAssetType() == AssetType.CRYPTO) {
-            return refreshCryptoPriceFromBinance(asset);
+            return refreshCryptoPriceWithFallback(asset);
         }
 
         if (marketDataProperties.provider() != MarketDataProviderType.DEMO
@@ -51,9 +56,55 @@ public class MarketDataRefreshService {
             );
         }
 
+        return refreshDemoPrice(asset);
+    }
+
+    private MarketPriceResponse refreshCryptoPriceWithFallback(Asset asset) {
+        try {
+            return refreshCryptoPriceFromBinance(asset);
+        } catch (RestClientException exception) {
+            log.warn(
+                    "Binance refresh request failed for {}. Falling back to DEMO refresh. Reason: {}",
+                    asset.getTicker(),
+                    exception.getMessage()
+            );
+
+            return refreshDemoPrice(asset);
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Binance refresh failed for {}. Falling back to DEMO refresh. Reason: {}",
+                    asset.getTicker(),
+                    exception.getMessage()
+            );
+
+            return refreshDemoPrice(asset);
+        }
+    }
+
+    private MarketPriceResponse refreshCryptoPriceFromBinance(Asset asset) {
+        MarketDataProvider binanceProvider = marketDataProviderRegistry.getProvider(
+                MarketDataProviderType.BINANCE
+        );
+
+        MarketPriceResponse livePrice = binanceProvider.getLatestMarketPrice(asset);
+
+        MarketPrice refreshedMarketPrice = MarketPrice.builder()
+                .asset(asset)
+                .price(livePrice.price())
+                .volume(livePrice.volume())
+                .source("BINANCE_REFRESH")
+                .timestamp(livePrice.timestamp())
+                .build();
+
+        MarketPrice savedPrice = marketPriceRepository.save(refreshedMarketPrice);
+
+        return marketDataMapper.toMarketPriceResponse(savedPrice);
+    }
+
+    private MarketPriceResponse refreshDemoPrice(Asset asset) {
         MarketPrice latestPrice = marketPriceRepository.findTopByAssetOrderByTimestampDesc(asset)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Market price not found for asset: " + ticker
+                        "Market price not found for asset: " + asset.getTicker()
                 ));
 
         BigDecimal refreshedPrice = applyRandomPercentChange(
@@ -74,26 +125,6 @@ public class MarketDataRefreshService {
                 .volume(refreshedVolume)
                 .source("DEMO_REFRESH")
                 .timestamp(Instant.now())
-                .build();
-
-        MarketPrice savedPrice = marketPriceRepository.save(refreshedMarketPrice);
-
-        return marketDataMapper.toMarketPriceResponse(savedPrice);
-    }
-
-    private MarketPriceResponse refreshCryptoPriceFromBinance(Asset asset) {
-        MarketDataProvider binanceProvider = marketDataProviderRegistry.getProvider(
-                MarketDataProviderType.BINANCE
-        );
-
-        MarketPriceResponse livePrice = binanceProvider.getLatestMarketPrice(asset);
-
-        MarketPrice refreshedMarketPrice = MarketPrice.builder()
-                .asset(asset)
-                .price(livePrice.price())
-                .volume(livePrice.volume())
-                .source("BINANCE_REFRESH")
-                .timestamp(livePrice.timestamp())
                 .build();
 
         MarketPrice savedPrice = marketPriceRepository.save(refreshedMarketPrice);
