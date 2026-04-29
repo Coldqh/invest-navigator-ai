@@ -6,6 +6,7 @@ import type {
     AIReportResponse,
     AnalyticsSummaryResponse,
     AssetResponse,
+    MarketDataProviderStatusResponse,
 } from "../types/api";
 
 type DashboardAsset = {
@@ -24,6 +25,7 @@ export function DashboardPage() {
     const [assets, setAssets] = useState<AssetResponse[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse[]>([]);
     const [reports, setReports] = useState<AIReportResponse[]>([]);
+    const [providerStatus, setProviderStatus] = useState<MarketDataProviderStatusResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -79,6 +81,9 @@ export function DashboardPage() {
             try {
                 setIsLoading(true);
                 setError("");
+
+                const loadedProviderStatus = await backendClient.getMarketDataProviderStatus();
+                setProviderStatus(loadedProviderStatus);
 
                 const loadedAssets = await backendClient.getAssets();
                 setAssets(loadedAssets);
@@ -186,6 +191,12 @@ export function DashboardPage() {
                     <p>Самый высокий риск среди активов</p>
                 </article>
             </div>
+
+            <article className="dashboard-stat-card provider-status-card">
+                <span>Источник данных</span>
+                <strong>{providerStatus?.activeProvider ?? "—"}</strong>
+                <p>{providerStatus?.status ?? "UNKNOWN"}</p>
+            </article>
 
             <div className="dashboard-grid">
                 <article className="panel">

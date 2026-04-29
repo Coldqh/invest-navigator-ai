@@ -327,7 +327,7 @@ code {
 
 .dashboard-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -692,4 +692,14 @@ code {
   .asset-header-side {
     justify-items: start;
   }
+}
+
+.provider-status-card {
+  background:
+          radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 16rem),
+          rgba(15, 23, 42, 0.76);
+}
+
+.provider-status-card strong {
+  color: #93c5fd;
 }

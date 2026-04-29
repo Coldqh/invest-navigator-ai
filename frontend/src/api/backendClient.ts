@@ -4,6 +4,7 @@ import type {
     ApiErrorResponse,
     AssetResponse,
     CandleResponse,
+    MarketDataProviderStatusResponse,
     MarketPriceResponse,
 } from "../types/api";
 
@@ -76,5 +77,9 @@ export const backendClient = {
         return request<MarketPriceResponse>(`/api/market-data/refresh/${ticker}`, {
             method: "POST",
         });
+    },
+
+    getMarketDataProviderStatus(): Promise<MarketDataProviderStatusResponse> {
+        return request<MarketDataProviderStatusResponse>("/api/market-data/provider");
     },
 };

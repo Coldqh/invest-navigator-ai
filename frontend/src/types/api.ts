@@ -78,3 +78,8 @@ export type ApiErrorResponse = {
     message: string;
     path: string;
 };
+
+export type MarketDataProviderStatusResponse = {
+    activeProvider: "DEMO" | "BINANCE" | "MOEX" | "T_INVEST";
+    status: string;
+};
