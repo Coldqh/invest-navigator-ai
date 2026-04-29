@@ -18,7 +18,7 @@ public record AIProperties(
         if (yandexGpt == null) {
             yandexGpt = new ExternalProvider(
                     false,
-                    "https://llm.api.cloud.yandex.net/v1",
+                    "https://ai.api.cloud.yandex.net/v1",
                     "",
                     "",
                     "",

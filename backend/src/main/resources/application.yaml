@@ -40,7 +40,7 @@ ai:
 
   yandex-gpt:
     enabled: false
-    base-url: https://llm.api.cloud.yandex.net/v1
+    base-url: https://ai.api.cloud.yandex.net/v1
     api-key: ""
     model: ""
     folder-id: ""

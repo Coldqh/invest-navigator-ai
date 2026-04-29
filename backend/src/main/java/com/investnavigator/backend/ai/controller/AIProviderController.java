@@ -6,6 +6,7 @@ import com.investnavigator.backend.ai.dto.AIProviderHealthResponse;
 import com.investnavigator.backend.ai.provider.AIProvider;
 import com.investnavigator.backend.ai.provider.AIProviderRegistry;
 import com.investnavigator.backend.ai.service.AIProviderHealthService;
+import com.investnavigator.backend.ai.service.YandexGptConnectionTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ public class AIProviderController {
     private final AIProperties aiProperties;
     private final AIProviderRegistry aiProviderRegistry;
     private final AIProviderHealthService aiProviderHealthService;
+    private final YandexGptConnectionTestService yandexGptConnectionTestService;
 
     @GetMapping
     public Map<String, Object> getActiveProvider() {
@@ -44,6 +46,11 @@ public class AIProviderController {
                 toExternalProviderConfiguration(aiProperties.gigaChat()),
                 toExternalProviderConfiguration(aiProperties.openAi())
         );
+    }
+
+    @GetMapping("/yandex/test")
+    public Map<String, Object> testYandexGptConnection() {
+        return yandexGptConnectionTestService.testConnection();
     }
 
     private AIProviderConfigurationResponse.ExternalProviderConfiguration toExternalProviderConfiguration(
