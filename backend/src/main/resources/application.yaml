@@ -23,5 +23,7 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yml
 
-  market-data:
-    provider: DEMO
+market-data:
+  provider: HYBRID
+  binance:
+    base-url: https://api.binance.com

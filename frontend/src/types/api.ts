@@ -80,6 +80,6 @@ export type ApiErrorResponse = {
 };
 
 export type MarketDataProviderStatusResponse = {
-    activeProvider: "DEMO" | "BINANCE" | "MOEX" | "T_INVEST";
+    activeProvider: "DEMO" | "BINANCE" | "MOEX" | "T_INVEST" | "HYBRID";
     status: string;
 };

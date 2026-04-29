@@ -4,5 +4,6 @@ public enum MarketDataProviderType {
     DEMO,
     BINANCE,
     MOEX,
-    T_INVEST
+    T_INVEST,
+    HYBRID
 }
