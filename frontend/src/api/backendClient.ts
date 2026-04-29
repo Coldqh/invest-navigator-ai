@@ -1,4 +1,6 @@
 import type {
+    AIProviderHealthResponse,
+    AIProviderStatusResponse,
     AIReportResponse,
     AnalyticsSummaryResponse,
     ApiErrorResponse,
@@ -86,5 +88,13 @@ export const backendClient = {
 
     getMarketDataProviderHealth(): Promise<MarketDataProviderHealthResponse> {
         return request<MarketDataProviderHealthResponse>("/api/market-data/provider/health");
+    },
+
+    getAIProviderStatus(): Promise<AIProviderStatusResponse> {
+        return request<AIProviderStatusResponse>("/api/ai/provider");
+    },
+
+    getAIProviderHealth(): Promise<AIProviderHealthResponse> {
+        return request<AIProviderHealthResponse>("/api/ai/provider/health");
     },
 };

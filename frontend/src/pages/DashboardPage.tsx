@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { backendClient } from "../api/backendClient";
 import { LoadingBlock } from "../components/LoadingBlock";
 import type {
+    AIProviderHealthResponse,
+    AIProviderHealthStatus,
     AIReportResponse,
     AnalyticsSummaryResponse,
     AssetResponse,
@@ -28,6 +30,8 @@ export function DashboardPage() {
     const [reports, setReports] = useState<AIReportResponse[]>([]);
     const [providerHealth, setProviderHealth] =
         useState<MarketDataProviderHealthResponse | null>(null);
+    const [aiProviderHealth, setAIProviderHealth] =
+        useState<AIProviderHealthResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -86,6 +90,9 @@ export function DashboardPage() {
 
                 const loadedProviderHealth = await backendClient.getMarketDataProviderHealth();
                 setProviderHealth(loadedProviderHealth);
+
+                const loadedAIProviderHealth = await backendClient.getAIProviderHealth();
+                setAIProviderHealth(loadedAIProviderHealth);
 
                 const loadedAssets = await backendClient.getAssets();
                 setAssets(loadedAssets);
@@ -152,7 +159,7 @@ export function DashboardPage() {
                     <h1>ИнвестНавигатор ИИ</h1>
                     <p>
                         Главная панель проекта: активы, риск, рыночные метрики, провайдеры
-                        данных и последние AI-отчёты.
+                        данных, AI-провайдеры и последние AI-отчёты.
                     </p>
                 </div>
 
@@ -198,12 +205,18 @@ export function DashboardPage() {
                     <strong>{providerHealth?.activeProvider ?? "—"}</strong>
                     <p>{providerHealth?.status ?? "UNKNOWN"}</p>
                 </article>
+
+                <article className="dashboard-stat-card provider-status-card">
+                    <span>AI-провайдер</span>
+                    <strong>{aiProviderHealth?.activeProvider ?? "—"}</strong>
+                    <p>{aiProviderHealth?.status ?? "UNKNOWN"}</p>
+                </article>
             </div>
 
             <article className="panel">
                 <div className="panel-header">
                     <div>
-                        <h2>Состояние провайдеров</h2>
+                        <h2>Состояние провайдеров данных</h2>
                         <p>Проверка доступности источников рыночных данных.</p>
                     </div>
                 </div>
@@ -226,7 +239,37 @@ export function DashboardPage() {
                         ))}
                     </div>
                 ) : (
-                    <p>Информация о провайдерах недоступна.</p>
+                    <p>Информация о провайдерах данных недоступна.</p>
+                )}
+            </article>
+
+            <article className="panel">
+                <div className="panel-header">
+                    <div>
+                        <h2>Состояние AI-провайдеров</h2>
+                        <p>Проверка доступности источников AI-анализа.</p>
+                    </div>
+                </div>
+
+                {aiProviderHealth ? (
+                    <div className="risk-leaderboard">
+                        {aiProviderHealth.providers.map((provider) => (
+                            <div className="risk-leaderboard-row" key={provider.type}>
+                                <span>{provider.type}</span>
+
+                                <div>
+                                    <strong>{provider.status}</strong>
+                                    <small>{provider.message}</small>
+                                </div>
+
+                                <span className={getProviderStatusClass(provider.status)}>
+                  {provider.status}
+                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p>Информация об AI-провайдерах недоступна.</p>
                 )}
             </article>
 
@@ -349,7 +392,9 @@ export function DashboardPage() {
     );
 }
 
-function getProviderStatusClass(status: ProviderHealthStatus): string {
+function getProviderStatusClass(
+    status: ProviderHealthStatus | AIProviderHealthStatus
+): string {
     if (status === "AVAILABLE") {
         return "risk risk-low";
     }

@@ -21,6 +21,18 @@ export type ProviderHealthStatus =
     | "UNAVAILABLE"
     | "NOT_CONFIGURED";
 
+export type AIProviderType =
+    | "MOCK"
+    | "YANDEX_GPT"
+    | "GIGA_CHAT"
+    | "OPENAI";
+
+export type AIProviderHealthStatus =
+    | "AVAILABLE"
+    | "DEGRADED"
+    | "UNAVAILABLE"
+    | "NOT_CONFIGURED";
+
 export type AssetResponse = {
     id: string;
     ticker: string;
@@ -108,5 +120,24 @@ export type MarketDataProviderHealthResponse = {
     activeProvider: MarketDataProviderType;
     status: ProviderHealthStatus;
     providers: MarketDataProviderHealthItemResponse[];
+    checkedAt: string;
+};
+
+export type AIProviderStatusResponse = {
+    activeProvider: AIProviderType;
+    status: string;
+};
+
+export type AIProviderHealthItemResponse = {
+    type: AIProviderType;
+    status: AIProviderHealthStatus;
+    message: string;
+    checkedAt: string;
+};
+
+export type AIProviderHealthResponse = {
+    activeProvider: AIProviderType;
+    status: AIProviderHealthStatus;
+    providers: AIProviderHealthItemResponse[];
     checkedAt: string;
 };
