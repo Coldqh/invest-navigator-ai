@@ -3,7 +3,11 @@ package com.investnavigator.backend.watchlist.service;
 import com.investnavigator.backend.asset.model.Asset;
 import com.investnavigator.backend.asset.repository.AssetRepository;
 import com.investnavigator.backend.common.error.ResourceNotFoundException;
+import com.investnavigator.backend.marketdata.dto.MarketPriceResponse;
+import com.investnavigator.backend.marketdata.service.MarketDataRefreshService;
 import com.investnavigator.backend.watchlist.dto.WatchlistItemResponse;
+import com.investnavigator.backend.watchlist.dto.WatchlistRefreshItemResponse;
+import com.investnavigator.backend.watchlist.dto.WatchlistRefreshResponse;
 import com.investnavigator.backend.watchlist.mapper.WatchlistItemMapper;
 import com.investnavigator.backend.watchlist.model.WatchlistItem;
 import com.investnavigator.backend.watchlist.repository.WatchlistItemRepository;
@@ -11,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -20,6 +25,7 @@ public class WatchlistService {
     private final AssetRepository assetRepository;
     private final WatchlistItemRepository watchlistItemRepository;
     private final WatchlistItemMapper watchlistItemMapper;
+    private final MarketDataRefreshService marketDataRefreshService;
 
     @Transactional(readOnly = true)
     public List<WatchlistItemResponse> getWatchlist() {
@@ -44,6 +50,61 @@ public class WatchlistService {
 
         if (watchlistItemRepository.existsByAsset(asset)) {
             watchlistItemRepository.deleteByAsset(asset);
+        }
+    }
+
+    @Transactional
+    public WatchlistRefreshResponse refreshWatchlist() {
+        List<WatchlistItem> items = watchlistItemRepository.findAllByOrderByCreatedAtDesc();
+
+        List<WatchlistRefreshItemResponse> refreshResults = items.stream()
+                .map(this::refreshWatchlistItem)
+                .toList();
+
+        int refreshedItems = (int) refreshResults.stream()
+                .filter(WatchlistRefreshItemResponse::refreshed)
+                .count();
+
+        int failedItems = refreshResults.size() - refreshedItems;
+
+        return new WatchlistRefreshResponse(
+                refreshResults.size(),
+                refreshedItems,
+                failedItems,
+                refreshResults,
+                Instant.now()
+        );
+    }
+
+    private WatchlistRefreshItemResponse refreshWatchlistItem(WatchlistItem item) {
+        Asset asset = item.getAsset();
+
+        try {
+            MarketPriceResponse refreshedPrice = marketDataRefreshService.refreshLatestPrice(
+                    asset.getTicker()
+            );
+
+            return new WatchlistRefreshItemResponse(
+                    asset.getTicker(),
+                    asset.getName(),
+                    true,
+                    refreshedPrice.price(),
+                    refreshedPrice.volume(),
+                    refreshedPrice.source(),
+                    refreshedPrice.timestamp(),
+                    null
+            );
+        } catch (RuntimeException exception) {
+            return new WatchlistRefreshItemResponse(
+                    asset.getTicker(),
+                    asset.getName(),
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    exception.getMessage()
+            );
         }
     }
 

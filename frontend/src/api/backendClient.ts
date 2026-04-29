@@ -10,6 +10,7 @@ import type {
     MarketDataProviderStatusResponse,
     MarketPriceResponse,
     WatchlistItemResponse,
+    WatchlistRefreshResponse,
 } from "../types/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
@@ -116,6 +117,12 @@ export const backendClient = {
     removeFromWatchlist(ticker: string): Promise<void> {
         return request<void>(`/api/watchlist/${ticker}`, {
             method: "DELETE",
+        });
+    },
+
+    refreshWatchlist(): Promise<WatchlistRefreshResponse> {
+        return request<WatchlistRefreshResponse>("/api/watchlist/refresh", {
+            method: "POST",
         });
     },
 };

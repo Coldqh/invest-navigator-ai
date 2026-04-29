@@ -6,6 +6,7 @@ import type {
     AnalyticsSummaryResponse,
     AssetResponse,
     WatchlistItemResponse,
+    WatchlistRefreshResponse,
 } from "../types/api";
 
 type WatchlistAnalyticsMap = Record<string, AnalyticsSummaryResponse | null>;
@@ -14,7 +15,11 @@ export function WatchlistPage() {
     const [assets, setAssets] = useState<AssetResponse[]>([]);
     const [watchlist, setWatchlist] = useState<WatchlistItemResponse[]>([]);
     const [analyticsMap, setAnalyticsMap] = useState<WatchlistAnalyticsMap>({});
+    const [lastRefresh, setLastRefresh] = useState<WatchlistRefreshResponse | null>(
+        null
+    );
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshingWatchlist, setIsRefreshingWatchlist] = useState(false);
     const [isUpdatingTicker, setIsUpdatingTicker] = useState<string | null>(null);
     const [error, setError] = useState("");
 
@@ -68,6 +73,26 @@ export function WatchlistPage() {
         setAnalyticsMap(nextAnalyticsMap);
     }
 
+    async function handleRefreshWatchlist() {
+        setIsRefreshingWatchlist(true);
+        setError("");
+
+        try {
+            const refreshResult = await backendClient.refreshWatchlist();
+            setLastRefresh(refreshResult);
+
+            const updatedWatchlist = await backendClient.getWatchlist();
+            setWatchlist(updatedWatchlist);
+            await loadAnalytics(updatedWatchlist);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error ? error.message : "Не удалось обновить watchlist"
+            );
+        } finally {
+            setIsRefreshingWatchlist(false);
+        }
+    }
+
     async function handleAdd(ticker: string) {
         setIsUpdatingTicker(ticker);
         setError("");
@@ -117,9 +142,59 @@ export function WatchlistPage() {
                         общий MVP-watchlist, позже привяжем его к пользователю.
                     </p>
                 </div>
+
+                <div className="hero-actions">
+                    <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isRefreshingWatchlist || watchlist.length === 0}
+                        onClick={handleRefreshWatchlist}
+                    >
+                        {isRefreshingWatchlist ? "Обновляем..." : "Обновить watchlist"}
+                    </button>
+                </div>
             </div>
 
             {error && <div className="error-block">{error}</div>}
+
+            {lastRefresh && (
+                <article className="panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>Последнее обновление</h2>
+                            <p>
+                                Обновлено: {lastRefresh.refreshedItems} / {lastRefresh.totalItems}.
+                                Ошибок: {lastRefresh.failedItems}.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="risk-leaderboard">
+                        {lastRefresh.items.map((item) => (
+                            <div className="risk-leaderboard-row" key={item.ticker}>
+                                <span>{item.ticker}</span>
+
+                                <div>
+                                    <strong>{item.refreshed ? "UPDATED" : "FAILED"}</strong>
+                                    <small>
+                                        {item.refreshed
+                                            ? `${item.source} · ${formatNumber(item.price)}`
+                                            : item.errorMessage ?? "Unknown error"}
+                                    </small>
+                                </div>
+
+                                <span
+                                    className={
+                                        item.refreshed ? "risk risk-low" : "risk risk-critical"
+                                    }
+                                >
+                  {item.refreshed ? "OK" : "ERROR"}
+                </span>
+                            </div>
+                        ))}
+                    </div>
+                </article>
+            )}
 
             <article className="panel">
                 <div className="panel-header">
@@ -225,4 +300,14 @@ export function WatchlistPage() {
             </article>
         </section>
     );
+}
+
+function formatNumber(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        return "—";
+    }
+
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 6,
+    }).format(value);
 }

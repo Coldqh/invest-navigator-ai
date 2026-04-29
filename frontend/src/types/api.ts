@@ -110,6 +110,25 @@ export type WatchlistItemResponse = {
     createdAt: string;
 };
 
+export type WatchlistRefreshItemResponse = {
+    ticker: string;
+    name: string;
+    refreshed: boolean;
+    price: number | null;
+    volume: number | null;
+    source: string | null;
+    timestamp: string | null;
+    errorMessage: string | null;
+};
+
+export type WatchlistRefreshResponse = {
+    totalItems: number;
+    refreshedItems: number;
+    failedItems: number;
+    items: WatchlistRefreshItemResponse[];
+    refreshedAt: string;
+};
+
 export type ApiErrorResponse = {
     timestamp: string;
     status: number;

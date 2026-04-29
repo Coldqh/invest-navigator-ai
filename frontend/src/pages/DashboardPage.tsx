@@ -11,6 +11,7 @@ import type {
     MarketDataProviderHealthResponse,
     ProviderHealthStatus,
     WatchlistItemResponse,
+    WatchlistRefreshResponse,
 } from "../types/api";
 
 type DashboardAsset = {
@@ -30,11 +31,14 @@ export function DashboardPage() {
     const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse[]>([]);
     const [reports, setReports] = useState<AIReportResponse[]>([]);
     const [watchlist, setWatchlist] = useState<WatchlistItemResponse[]>([]);
+    const [lastWatchlistRefresh, setLastWatchlistRefresh] =
+        useState<WatchlistRefreshResponse | null>(null);
     const [providerHealth, setProviderHealth] =
         useState<MarketDataProviderHealthResponse | null>(null);
     const [aiProviderHealth, setAIProviderHealth] =
         useState<AIProviderHealthResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshingWatchlist, setIsRefreshingWatchlist] = useState(false);
     const [error, setError] = useState("");
 
     const dashboardAssets = useMemo<DashboardAsset[]>(() => {
@@ -168,6 +172,49 @@ export function DashboardPage() {
         loadDashboard();
     }, []);
 
+    async function handleRefreshWatchlist() {
+        setIsRefreshingWatchlist(true);
+        setError("");
+
+        try {
+            const refreshResult = await backendClient.refreshWatchlist();
+            setLastWatchlistRefresh(refreshResult);
+
+            const [updatedWatchlist, updatedAssets] = await Promise.all([
+                backendClient.getWatchlist(),
+                backendClient.getAssets(),
+            ]);
+
+            setWatchlist(updatedWatchlist);
+            setAssets(updatedAssets);
+
+            const analyticsResults = await Promise.allSettled(
+                updatedAssets.map((asset) =>
+                    backendClient.getAnalyticsSummary(asset.ticker)
+                )
+            );
+
+            const updatedAnalytics = analyticsResults
+                .filter(
+                    (
+                        result
+                    ): result is PromiseFulfilledResult<AnalyticsSummaryResponse> =>
+                        result.status === "fulfilled"
+                )
+                .map((result) => result.value);
+
+            setAnalytics(updatedAnalytics);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось обновить watchlist"
+            );
+        } finally {
+            setIsRefreshingWatchlist(false);
+        }
+    }
+
     if (isLoading) {
         return <LoadingBlock text="Собираем рыночную сводку..." />;
     }
@@ -250,10 +297,29 @@ export function DashboardPage() {
                         <p>Избранные активы с текущей ценой и уровнем риска.</p>
                     </div>
 
-                    <Link to="/watchlist" className="secondary-link">
-                        Управлять →
-                    </Link>
+                    <div className="hero-actions">
+                        <button
+                            type="button"
+                            className="primary-button"
+                            disabled={isRefreshingWatchlist || watchlist.length === 0}
+                            onClick={handleRefreshWatchlist}
+                        >
+                            {isRefreshingWatchlist ? "Обновляем..." : "Обновить watchlist"}
+                        </button>
+
+                        <Link to="/watchlist" className="secondary-link">
+                            Управлять →
+                        </Link>
+                    </div>
                 </div>
+
+                {lastWatchlistRefresh && (
+                    <div className="empty-state">
+                        Обновлено: {lastWatchlistRefresh.refreshedItems} /{" "}
+                        {lastWatchlistRefresh.totalItems}. Ошибок:{" "}
+                        {lastWatchlistRefresh.failedItems}.
+                    </div>
+                )}
 
                 {watchlistAssets.length === 0 ? (
                     <div className="empty-state">

@@ -1,6 +1,7 @@
 package com.investnavigator.backend.watchlist.controller;
 
 import com.investnavigator.backend.watchlist.dto.WatchlistItemResponse;
+import com.investnavigator.backend.watchlist.dto.WatchlistRefreshResponse;
 import com.investnavigator.backend.watchlist.service.WatchlistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,11 @@ public class WatchlistController {
     @PostMapping("/{ticker}")
     public WatchlistItemResponse addToWatchlist(@PathVariable String ticker) {
         return watchlistService.addToWatchlist(ticker);
+    }
+
+    @PostMapping("/refresh")
+    public WatchlistRefreshResponse refreshWatchlist() {
+        return watchlistService.refreshWatchlist();
     }
 
     @DeleteMapping("/{ticker}")
