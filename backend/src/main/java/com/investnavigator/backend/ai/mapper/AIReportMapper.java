@@ -2,6 +2,8 @@ package com.investnavigator.backend.ai.mapper;
 
 import com.investnavigator.backend.ai.dto.AIReportResponse;
 import com.investnavigator.backend.ai.model.AIReport;
+import com.investnavigator.backend.ai.provider.AIProviderType;
+import com.investnavigator.backend.asset.model.Asset;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -10,14 +12,17 @@ import java.util.List;
 public class AIReportMapper {
 
     public AIReportResponse toResponse(AIReport report) {
+        Asset asset = report.getAsset();
+
         return new AIReportResponse(
                 report.getId(),
-                report.getAsset().getId(),
-                report.getAsset().getTicker(),
-                report.getAsset().getName(),
+                asset.getId(),
+                asset.getTicker(),
+                asset.getName(),
+                report.getAiProvider() == null ? AIProviderType.MOCK : report.getAiProvider(),
                 report.getSummary(),
-                copyList(report.getPositiveFactors()),
-                copyList(report.getNegativeFactors()),
+                safeList(report.getPositiveFactors()),
+                safeList(report.getNegativeFactors()),
                 report.getRiskLevel(),
                 report.getRiskScore(),
                 report.getConfidence(),
@@ -27,11 +32,11 @@ public class AIReportMapper {
         );
     }
 
-    private List<String> copyList(List<String> source) {
-        if (source == null) {
+    private List<String> safeList(List<String> values) {
+        if (values == null) {
             return List.of();
         }
 
-        return List.copyOf(source);
+        return List.copyOf(values);
     }
 }

@@ -44,13 +44,15 @@ public class AIReportService {
 
         AnalyticsSummaryResponse analytics = analyticsService.getSummary(ticker);
 
-        AIAnalysisResult analysisResult = analyzeWithFallback(asset, analytics);
+        AnalysisWithProvider analysisWithProvider = analyzeWithFallback(asset, analytics);
+        AIAnalysisResult analysisResult = analysisWithProvider.analysisResult();
 
         aiReportRepository.deleteByAsset(asset);
         aiReportRepository.flush();
 
         AIReport report = AIReport.builder()
                 .asset(asset)
+                .aiProvider(analysisWithProvider.providerType())
                 .summary(analysisResult.summary())
                 .positiveFactors(analysisResult.positiveFactors())
                 .negativeFactors(analysisResult.negativeFactors())
@@ -84,7 +86,7 @@ public class AIReportService {
                 .orElseThrow(() -> new ResourceNotFoundException("AI report not found: " + reportId));
     }
 
-    private AIAnalysisResult analyzeWithFallback(
+    private AnalysisWithProvider analyzeWithFallback(
             Asset asset,
             AnalyticsSummaryResponse analytics
     ) {
@@ -99,7 +101,12 @@ public class AIReportService {
         AIProvider activeProvider = aiProviderRegistry.getProvider(activeProviderType);
 
         try {
-            return activeProvider.analyze(request);
+            AIAnalysisResult analysisResult = activeProvider.analyze(request);
+
+            return new AnalysisWithProvider(
+                    activeProviderType,
+                    analysisResult
+            );
         } catch (RuntimeException exception) {
             if (activeProviderType == AIProviderType.MOCK) {
                 throw exception;
@@ -114,7 +121,16 @@ public class AIReportService {
 
             AIProvider mockProvider = aiProviderRegistry.getProvider(AIProviderType.MOCK);
 
-            return mockProvider.analyze(request);
+            return new AnalysisWithProvider(
+                    AIProviderType.MOCK,
+                    mockProvider.analyze(request)
+            );
         }
+    }
+
+    private record AnalysisWithProvider(
+            AIProviderType providerType,
+            AIAnalysisResult analysisResult
+    ) {
     }
 }

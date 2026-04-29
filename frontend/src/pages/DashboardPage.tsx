@@ -347,7 +347,7 @@ export function DashboardPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Последние AI-отчёты</h2>
-                        <p>Недавние mock-отчёты, сохранённые в базе.</p>
+                        <p>Недавние отчёты, сохранённые в базе.</p>
                     </div>
                 </div>
 
@@ -381,6 +381,7 @@ export function DashboardPage() {
                   <span className={`risk risk-${report.riskLevel.toLowerCase()}`}>
                     {report.riskLevel}
                   </span>
+                                    <span>{report.provider}</span>
                                     <span>{report.confidence} confidence</span>
                                 </div>
                             </Link>

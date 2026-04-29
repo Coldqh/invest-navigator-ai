@@ -874,3 +874,116 @@ databaseChangeLog:
                         tableName: ai_reports
                         columnNames: asset_id
                         constraintName: uk_ai_reports_asset_id
+              
+  - changeSet:
+      id: 010-add-ai-provider-to-ai-reports
+      author: vlad
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              ALTER TABLE ai_reports
+              ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(50);
+
+              UPDATE ai_reports
+              SET ai_provider = 'MOCK'
+              WHERE ai_provider IS NULL;
+
+              ALTER TABLE ai_reports
+              ALTER COLUMN ai_provider SET NOT NULL;
+
+              ALTER TABLE ai_reports
+              ALTER COLUMN ai_provider SET DEFAULT 'MOCK';
+
+  - changeSet:
+      id: 011-normalize-ai-report-factor-columns
+      author: vlad
+      changes:
+        - sql:
+            splitStatements: false
+            stripComments: true
+            sql: |
+              DO $$
+              BEGIN
+                  IF NOT EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_positive_factors'
+                        AND column_name = 'positive_factor'
+                  ) THEN
+                      ALTER TABLE ai_report_positive_factors
+                      ADD COLUMN positive_factor TEXT;
+                  END IF;
+
+                  IF EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_positive_factors'
+                        AND column_name = 'factor'
+                  ) THEN
+                      UPDATE ai_report_positive_factors
+                      SET positive_factor = factor
+                      WHERE positive_factor IS NULL;
+                  END IF;
+
+                  IF EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_positive_factors'
+                        AND column_name = 'positive_factors'
+                  ) THEN
+                      UPDATE ai_report_positive_factors
+                      SET positive_factor = positive_factors
+                      WHERE positive_factor IS NULL;
+                  END IF;
+
+                  UPDATE ai_report_positive_factors
+                  SET positive_factor = 'Migrated positive factor'
+                  WHERE positive_factor IS NULL;
+
+                  ALTER TABLE ai_report_positive_factors
+                  ALTER COLUMN positive_factor SET NOT NULL;
+              END $$;
+
+              DO $$
+              BEGIN
+                  IF NOT EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_negative_factors'
+                        AND column_name = 'negative_factor'
+                  ) THEN
+                      ALTER TABLE ai_report_negative_factors
+                      ADD COLUMN negative_factor TEXT;
+                  END IF;
+
+                  IF EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_negative_factors'
+                        AND column_name = 'factor'
+                  ) THEN
+                      UPDATE ai_report_negative_factors
+                      SET negative_factor = factor
+                      WHERE negative_factor IS NULL;
+                  END IF;
+
+                  IF EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_negative_factors'
+                        AND column_name = 'negative_factors'
+                  ) THEN
+                      UPDATE ai_report_negative_factors
+                      SET negative_factor = negative_factors
+                      WHERE negative_factor IS NULL;
+                  END IF;
+
+                  UPDATE ai_report_negative_factors
+                  SET negative_factor = 'Migrated negative factor'
+                  WHERE negative_factor IS NULL;
+
+                  ALTER TABLE ai_report_negative_factors
+                  ALTER COLUMN negative_factor SET NOT NULL;
+              END $$;

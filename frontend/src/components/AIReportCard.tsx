@@ -25,6 +25,23 @@ export function AIReportCard({ report }: AIReportCardProps) {
                 </div>
             </div>
 
+            <div className="ai-report-meta">
+                <div>
+                    <span>AI-провайдер</span>
+                    <strong>{report.provider}</strong>
+                </div>
+
+                <div>
+                    <span>Уверенность</span>
+                    <strong>{report.confidence}</strong>
+                </div>
+
+                <div>
+                    <span>Актив</span>
+                    <strong>{report.name}</strong>
+                </div>
+            </div>
+
             <div className="ai-report-summary">
                 <h4>Краткий вывод</h4>
                 <p>{report.summary}</p>
@@ -50,18 +67,6 @@ export function AIReportCard({ report }: AIReportCardProps) {
                         ))}
                     </ul>
                 </section>
-            </div>
-
-            <div className="ai-report-meta">
-                <div>
-                    <span>Уверенность</span>
-                    <strong>{report.confidence}</strong>
-                </div>
-
-                <div>
-                    <span>Актив</span>
-                    <strong>{report.name}</strong>
-                </div>
             </div>
 
             <details className="ai-report-details">

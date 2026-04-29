@@ -85,6 +85,7 @@ export type AIReportResponse = {
     assetId: string;
     ticker: string;
     name: string;
+    provider: AIProviderType;
     summary: string;
     positiveFactors: string[];
     negativeFactors: string[];
