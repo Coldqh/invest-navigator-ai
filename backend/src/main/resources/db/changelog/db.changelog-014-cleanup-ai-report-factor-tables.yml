@@ -1,0 +1,138 @@
+databaseChangeLog:
+  - changeSet:
+      id: 014-cleanup-ai-report-factor-tables
+      author: vlad
+      changes:
+        - sql:
+            splitStatements: false
+            stripComments: true
+            sql: |
+              DO $$
+              BEGIN
+                  IF EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_positive_factors'
+                        AND column_name = 'positive_factor'
+                  ) THEN
+                      IF EXISTS (
+                          SELECT 1
+                          FROM information_schema.columns
+                          WHERE table_name = 'ai_report_positive_factors'
+                            AND column_name = 'factor_text'
+                      ) THEN
+                          UPDATE ai_report_positive_factors
+                          SET positive_factor = factor_text
+                          WHERE positive_factor IS NULL
+                            AND factor_text IS NOT NULL;
+                      END IF;
+
+                      IF EXISTS (
+                          SELECT 1
+                          FROM information_schema.columns
+                          WHERE table_name = 'ai_report_positive_factors'
+                            AND column_name = 'factor'
+                      ) THEN
+                          UPDATE ai_report_positive_factors
+                          SET positive_factor = factor
+                          WHERE positive_factor IS NULL
+                            AND factor IS NOT NULL;
+                      END IF;
+
+                      IF EXISTS (
+                          SELECT 1
+                          FROM information_schema.columns
+                          WHERE table_name = 'ai_report_positive_factors'
+                            AND column_name = 'positive_factors'
+                      ) THEN
+                          UPDATE ai_report_positive_factors
+                          SET positive_factor = positive_factors
+                          WHERE positive_factor IS NULL
+                            AND positive_factors IS NOT NULL;
+                      END IF;
+
+                      UPDATE ai_report_positive_factors
+                      SET positive_factor = 'Migrated positive factor'
+                      WHERE positive_factor IS NULL;
+
+                      ALTER TABLE ai_report_positive_factors
+                      ALTER COLUMN positive_factor SET NOT NULL;
+                  END IF;
+
+                  ALTER TABLE ai_report_positive_factors
+                  DROP COLUMN IF EXISTS factor_order;
+
+                  ALTER TABLE ai_report_positive_factors
+                  DROP COLUMN IF EXISTS factor_text;
+
+                  ALTER TABLE ai_report_positive_factors
+                  DROP COLUMN IF EXISTS factor;
+
+                  ALTER TABLE ai_report_positive_factors
+                  DROP COLUMN IF EXISTS positive_factors;
+              END $$;
+
+              DO $$
+              BEGIN
+                  IF EXISTS (
+                      SELECT 1
+                      FROM information_schema.columns
+                      WHERE table_name = 'ai_report_negative_factors'
+                        AND column_name = 'negative_factor'
+                  ) THEN
+                      IF EXISTS (
+                          SELECT 1
+                          FROM information_schema.columns
+                          WHERE table_name = 'ai_report_negative_factors'
+                            AND column_name = 'factor_text'
+                      ) THEN
+                          UPDATE ai_report_negative_factors
+                          SET negative_factor = factor_text
+                          WHERE negative_factor IS NULL
+                            AND factor_text IS NOT NULL;
+                      END IF;
+
+                      IF EXISTS (
+                          SELECT 1
+                          FROM information_schema.columns
+                          WHERE table_name = 'ai_report_negative_factors'
+                            AND column_name = 'factor'
+                      ) THEN
+                          UPDATE ai_report_negative_factors
+                          SET negative_factor = factor
+                          WHERE negative_factor IS NULL
+                            AND factor IS NOT NULL;
+                      END IF;
+
+                      IF EXISTS (
+                          SELECT 1
+                          FROM information_schema.columns
+                          WHERE table_name = 'ai_report_negative_factors'
+                            AND column_name = 'negative_factors'
+                      ) THEN
+                          UPDATE ai_report_negative_factors
+                          SET negative_factor = negative_factors
+                          WHERE negative_factor IS NULL
+                            AND negative_factors IS NOT NULL;
+                      END IF;
+
+                      UPDATE ai_report_negative_factors
+                      SET negative_factor = 'Migrated negative factor'
+                      WHERE negative_factor IS NULL;
+
+                      ALTER TABLE ai_report_negative_factors
+                      ALTER COLUMN negative_factor SET NOT NULL;
+                  END IF;
+
+                  ALTER TABLE ai_report_negative_factors
+                  DROP COLUMN IF EXISTS factor_order;
+
+                  ALTER TABLE ai_report_negative_factors
+                  DROP COLUMN IF EXISTS factor_text;
+
+                  ALTER TABLE ai_report_negative_factors
+                  DROP COLUMN IF EXISTS factor;
+
+                  ALTER TABLE ai_report_negative_factors
+                  DROP COLUMN IF EXISTS negative_factors;
+              END $$;

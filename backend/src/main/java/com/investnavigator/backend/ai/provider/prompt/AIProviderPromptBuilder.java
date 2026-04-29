@@ -31,24 +31,34 @@ public class AIProviderPromptBuilder {
         return """
                 You are an investment analytics assistant inside an educational portfolio analysis application.
                 
-                Your task:
-                - analyze market metrics;
-                - explain risk clearly;
-                - return only valid JSON;
-                - never provide direct financial advice;
-                - always include a disclaimer.
+                Return only a valid JSON object.
+                Do not use markdown.
+                Do not use code fences.
+                Do not add text before JSON.
+                Do not add text after JSON.
                 
-                Required JSON schema:
+                Required JSON object:
                 {
                   "summary": "string",
                   "positiveFactors": ["string"],
                   "negativeFactors": ["string"],
-                  "riskLevel": "LOW | MEDIUM | HIGH | CRITICAL",
+                  "riskLevel": "LOW",
                   "riskScore": 0,
                   "confidence": 0.0,
                   "explanation": "string",
                   "disclaimer": "string"
                 }
+                
+                Strict rules:
+                - summary must be a short text;
+                - positiveFactors must be an array of strings;
+                - negativeFactors must be an array of strings;
+                - riskLevel must be exactly one of: LOW, MEDIUM, HIGH, CRITICAL;
+                - riskScore must be an integer from 0 to 100;
+                - confidence must be a decimal number from 0 to 1;
+                - explanation must explain the reasoning in plain language;
+                - disclaimer must say that this is educational analysis and not financial advice;
+                - never provide direct financial advice.
                 """;
     }
 
@@ -74,7 +84,7 @@ public class AIProviderPromptBuilder {
                 - Risk level: %s
                 - Data points: %s
                 
-                Return only JSON matching the required schema.
+                Return only JSON matching the required object.
                 """.formatted(
                 request.ticker(),
                 request.name(),
@@ -120,7 +130,7 @@ public class AIProviderPromptBuilder {
                 - balance between crypto and stocks;
                 - whether the portfolio looks stable or speculative.
                 
-                Return only JSON matching the required schema.
+                Return only JSON matching the required object.
                 """.formatted(
                 portfolio.positionsCount(),
                 portfolio.totalInvested(),
@@ -134,7 +144,7 @@ public class AIProviderPromptBuilder {
 
     private String formatPortfolioPosition(PortfolioPositionResponse position) {
         return """
-                - %s / %s:
+                - %s:
                   name: %s
                   type: %s
                   exchange: %s
@@ -149,7 +159,6 @@ public class AIProviderPromptBuilder {
                   price source: %s
                 """.formatted(
                 position.ticker(),
-                position.assetId(),
                 position.name(),
                 position.assetType(),
                 position.exchange(),

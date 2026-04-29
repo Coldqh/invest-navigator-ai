@@ -22,6 +22,7 @@ public record AIPortfolioReportResponse(
         BigDecimal confidence,
         String explanation,
         String disclaimer,
+        String fallbackReason,
         Instant generatedAt
 ) {
 }

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Instant;
 
@@ -52,6 +53,7 @@ public class AIPortfolioReportService {
                 analysisResult.confidence(),
                 analysisResult.explanation(),
                 analysisResult.disclaimer(),
+                analysisWithProvider.fallbackReason(),
                 Instant.now()
         );
     }
@@ -68,31 +70,63 @@ public class AIPortfolioReportService {
 
             return new AnalysisWithProvider(
                     activeProviderType,
-                    analysisResult
+                    analysisResult,
+                    null
             );
         } catch (RuntimeException exception) {
             if (activeProviderType == AIProviderType.MOCK) {
                 throw exception;
             }
 
+            String fallbackReason = buildFallbackReason(activeProviderType, exception);
+
             log.warn(
                     "AI provider {} failed for portfolio report. Falling back to MOCK provider. Reason: {}",
                     activeProviderType,
-                    exception.getMessage()
+                    fallbackReason
             );
 
             AIProvider mockProvider = aiProviderRegistry.getProvider(AIProviderType.MOCK);
 
             return new AnalysisWithProvider(
                     AIProviderType.MOCK,
-                    mockProvider.analyzePortfolio(request)
+                    mockProvider.analyzePortfolio(request),
+                    fallbackReason
             );
         }
     }
 
+    private String buildFallbackReason(
+            AIProviderType providerType,
+            RuntimeException exception
+    ) {
+        if (exception instanceof RestClientResponseException restException) {
+            return """
+                    Provider %s HTTP request failed.
+                    Status: %s
+                    Response body: %s
+                    """.formatted(
+                    providerType,
+                    restException.getStatusCode(),
+                    restException.getResponseBodyAsString()
+            ).trim();
+        }
+
+        return """
+                Provider %s failed.
+                Exception: %s
+                Message: %s
+                """.formatted(
+                providerType,
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        ).trim();
+    }
+
     private record AnalysisWithProvider(
             AIProviderType providerType,
-            AIAnalysisResult analysisResult
+            AIAnalysisResult analysisResult,
+            String fallbackReason
     ) {
     }
 }

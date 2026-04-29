@@ -12,6 +12,13 @@ import java.util.List;
 public class AIReportMapper {
 
     public AIReportResponse toResponse(AIReport report) {
+        return toResponse(report, null);
+    }
+
+    public AIReportResponse toResponse(
+            AIReport report,
+            String fallbackReason
+    ) {
         Asset asset = report.getAsset();
 
         return new AIReportResponse(
@@ -28,6 +35,7 @@ public class AIReportMapper {
                 report.getConfidence(),
                 report.getExplanation(),
                 report.getDisclaimer(),
+                fallbackReason,
                 report.getCreatedAt()
         );
     }

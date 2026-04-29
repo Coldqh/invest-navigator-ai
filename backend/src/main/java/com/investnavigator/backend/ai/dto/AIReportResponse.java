@@ -22,6 +22,7 @@ public record AIReportResponse(
         BigDecimal confidence,
         String explanation,
         String disclaimer,
+        String fallbackReason,
         Instant createdAt
 ) {
 }
