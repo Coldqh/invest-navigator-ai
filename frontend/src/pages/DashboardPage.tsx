@@ -10,6 +10,7 @@ import type {
     AssetResponse,
     MarketDataProviderHealthResponse,
     ProviderHealthStatus,
+    WatchlistItemResponse,
 } from "../types/api";
 
 type DashboardAsset = {
@@ -28,6 +29,7 @@ export function DashboardPage() {
     const [assets, setAssets] = useState<AssetResponse[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse[]>([]);
     const [reports, setReports] = useState<AIReportResponse[]>([]);
+    const [watchlist, setWatchlist] = useState<WatchlistItemResponse[]>([]);
     const [providerHealth, setProviderHealth] =
         useState<MarketDataProviderHealthResponse | null>(null);
     const [aiProviderHealth, setAIProviderHealth] =
@@ -46,6 +48,18 @@ export function DashboardPage() {
             };
         });
     }, [assets, analytics]);
+
+    const watchlistAssets = useMemo(() => {
+        return watchlist.map((watchlistItem) => {
+            const assetAnalytics =
+                analytics.find((item) => item.ticker === watchlistItem.ticker) ?? null;
+
+            return {
+                item: watchlistItem,
+                analytics: assetAnalytics,
+            };
+        });
+    }, [watchlist, analytics]);
 
     const highRiskAssets = useMemo(() => {
         return [...dashboardAssets]
@@ -77,10 +91,11 @@ export function DashboardPage() {
         return {
             totalAssets: assets.length,
             analyticsCount: analytics.length,
+            watchlistCount: watchlist.length,
             averageRiskScore,
             mostCommonRiskLevel: mostCommonRiskLevel ?? "—",
         };
-    }, [assets.length, analytics]);
+    }, [assets.length, analytics, watchlist.length]);
 
     useEffect(() => {
         async function loadDashboard() {
@@ -88,14 +103,20 @@ export function DashboardPage() {
                 setIsLoading(true);
                 setError("");
 
-                const loadedProviderHealth = await backendClient.getMarketDataProviderHealth();
+                const loadedProviderHealth =
+                    await backendClient.getMarketDataProviderHealth();
                 setProviderHealth(loadedProviderHealth);
 
                 const loadedAIProviderHealth = await backendClient.getAIProviderHealth();
                 setAIProviderHealth(loadedAIProviderHealth);
 
-                const loadedAssets = await backendClient.getAssets();
+                const [loadedAssets, loadedWatchlist] = await Promise.all([
+                    backendClient.getAssets(),
+                    backendClient.getWatchlist(),
+                ]);
+
                 setAssets(loadedAssets);
+                setWatchlist(loadedWatchlist);
 
                 const analyticsResults = await Promise.allSettled(
                     loadedAssets.map((asset) =>
@@ -158,14 +179,17 @@ export function DashboardPage() {
                     <p className="eyebrow">Dashboard</p>
                     <h1>ИнвестНавигатор ИИ</h1>
                     <p>
-                        Главная панель проекта: активы, риск, рыночные метрики, провайдеры
-                        данных, AI-провайдеры и последние AI-отчёты.
+                        Главная панель проекта: активы, риск, избранные инструменты,
+                        провайдеры данных, AI-провайдеры и последние AI-отчёты.
                     </p>
                 </div>
 
                 <div className="hero-actions">
                     <Link to="/assets" className="primary-button">
                         Открыть активы
+                    </Link>
+                    <Link to="/watchlist" className="ghost-button">
+                        Watchlist
                     </Link>
                     <Link to="/compare" className="ghost-button">
                         Сравнить активы
@@ -180,6 +204,12 @@ export function DashboardPage() {
                     <span>Активов</span>
                     <strong>{riskOverview.totalAssets}</strong>
                     <p>Доступно для анализа</p>
+                </article>
+
+                <article className="dashboard-stat-card">
+                    <span>В watchlist</span>
+                    <strong>{riskOverview.watchlistCount}</strong>
+                    <p>Избранные инструменты</p>
                 </article>
 
                 <article className="dashboard-stat-card">
@@ -212,6 +242,60 @@ export function DashboardPage() {
                     <p>{aiProviderHealth?.status ?? "UNKNOWN"}</p>
                 </article>
             </div>
+
+            <article className="panel">
+                <div className="panel-header">
+                    <div>
+                        <h2>Watchlist</h2>
+                        <p>Избранные активы с текущей ценой и уровнем риска.</p>
+                    </div>
+
+                    <Link to="/watchlist" className="secondary-link">
+                        Управлять →
+                    </Link>
+                </div>
+
+                {watchlistAssets.length === 0 ? (
+                    <div className="empty-state">
+                        <h3>Watchlist пока пуст</h3>
+                        <p>
+                            Добавь SBER, BTCUSDT или другой актив, чтобы видеть его прямо на
+                            главной странице.
+                        </p>
+                        <Link to="/watchlist" className="primary-button">
+                            Добавить активы
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="dashboard-asset-list">
+                        {watchlistAssets.map(({ item, analytics }) => (
+                            <Link
+                                to={`/assets/${item.ticker}`}
+                                className="dashboard-asset-card"
+                                key={item.id}
+                            >
+                                <div>
+                                    <strong>{item.ticker}</strong>
+                                    <span>{item.name}</span>
+                                </div>
+
+                                <div className="dashboard-asset-metrics">
+                                    <span>{item.exchange}</span>
+                                    <span>{item.assetType}</span>
+                                    <span>{analytics?.currentPrice ?? "—"}</span>
+                                    <span
+                                        className={`risk risk-${
+                                            analytics?.riskLevel?.toLowerCase() ?? "unknown"
+                                        }`}
+                                    >
+                    {analytics?.riskLevel ?? "—"}
+                  </span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </article>
 
             <article className="panel">
                 <div className="panel-header">
