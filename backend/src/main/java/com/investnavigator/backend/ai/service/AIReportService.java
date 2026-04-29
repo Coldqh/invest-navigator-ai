@@ -41,6 +41,9 @@ public class AIReportService {
 
         AnalyticsSummaryResponse analytics = analyticsService.getSummary(ticker);
 
+        aiReportRepository.deleteByAsset(asset);
+        aiReportRepository.flush();
+
         AIReport report = AIReport.builder()
                 .asset(asset)
                 .summary(buildSummary(analytics))
@@ -63,10 +66,10 @@ public class AIReportService {
         Asset asset = assetRepository.findByTickerIgnoreCase(ticker)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
 
-        return aiReportRepository.findByAssetOrderByCreatedAtDesc(asset)
-                .stream()
+        return aiReportRepository.findTopByAssetOrderByCreatedAtDesc(asset)
                 .map(aiReportMapper::toResponse)
-                .toList();
+                .map(List::of)
+                .orElseGet(List::of);
     }
 
     @Transactional(readOnly = true)

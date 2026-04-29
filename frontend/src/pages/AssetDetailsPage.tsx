@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { backendClient } from "../api/backendClient";
 import { LoadingBlock } from "../components/LoadingBlock";
@@ -25,6 +25,7 @@ export function AssetDetailsPage() {
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [error, setError] = useState("");
     const [warning, setWarning] = useState("");
+    const reportGenerationLockRef = useRef(false);
 
     useEffect(() => {
         if (!ticker) {
@@ -77,20 +78,22 @@ export function AssetDetailsPage() {
     }, [ticker]);
 
     async function handleGenerateReport() {
-        if (!ticker) {
+        if (!ticker || reportGenerationLockRef.current) {
             return;
         }
 
+        reportGenerationLockRef.current = true;
         setIsGeneratingReport(true);
         setError("");
 
         try {
             const newReport = await backendClient.generateAIReport(ticker);
-            setReports((previousReports) => [newReport, ...previousReports]);
+            setReports([newReport]);
             setWarning("");
         } catch (error: unknown) {
             setError(error instanceof Error ? error.message : "Не удалось создать AI-отчёт");
         } finally {
+            reportGenerationLockRef.current = false;
             setIsGeneratingReport(false);
         }
     }

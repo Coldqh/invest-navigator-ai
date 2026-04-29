@@ -854,3 +854,23 @@ databaseChangeLog:
               ('74000001-0000-0000-0000-000000000001', '66666666-6666-6666-6666-666666666666', 'ONE_DAY', 3250.000000, 3460.000000, 3210.000000, 3420.000000, 182000.000000, 'DEMO', '2026-04-24 00:00:00+00'),
               ('74000002-0000-0000-0000-000000000002', '66666666-6666-6666-6666-666666666666', 'ONE_DAY', 3420.000000, 3500.000000, 3340.000000, 3375.000000, 175000.000000, 'DEMO', '2026-04-25 00:00:00+00'),
               ('74000003-0000-0000-0000-000000000003', '66666666-6666-6666-6666-666666666666', 'ONE_DAY', 3375.000000, 3460.000000, 3320.000000, 3420.000000, 182000.000000, 'DEMO', '2026-04-28 00:00:00+00');
+              
+              - changeSet:
+                  id: 009-keep-only-latest-ai-report-per-asset
+                  author: vlad
+                  changes:
+                    - sql:
+                        splitStatements: true
+                        stripComments: true
+                        sql: |
+                          DELETE FROM ai_reports
+                          WHERE id NOT IN (
+                              SELECT DISTINCT ON (asset_id) id
+                              FROM ai_reports
+                              ORDER BY asset_id, created_at DESC
+                          );
+
+                    - addUniqueConstraint:
+                        tableName: ai_reports
+                        columnNames: asset_id
+                        constraintName: uk_ai_reports_asset_id
