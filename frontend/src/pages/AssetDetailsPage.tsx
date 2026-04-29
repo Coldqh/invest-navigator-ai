@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { backendClient } from "../api/backendClient";
-import { LoadingBlock } from "../components/LoadingBlock";
-import { MiniLineChart } from "../components/MiniLineChart";
 import { AIReportCard } from "../components/AIReportCard";
+import { LoadingBlock } from "../components/LoadingBlock";
 import type {
     AIReportResponse,
     AnalyticsSummaryResponse,
     AssetResponse,
     CandleResponse,
     MarketPriceResponse,
+    WatchlistItemResponse,
 } from "../types/api";
 
 export function AssetDetailsPage() {
@@ -18,105 +18,178 @@ export function AssetDetailsPage() {
     const [asset, setAsset] = useState<AssetResponse | null>(null);
     const [marketData, setMarketData] = useState<MarketPriceResponse | null>(null);
     const [candles, setCandles] = useState<CandleResponse[]>([]);
-    const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse | null>(null);
+    const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse | null>(
+        null
+    );
     const [reports, setReports] = useState<AIReportResponse[]>([]);
+    const [watchlist, setWatchlist] = useState<WatchlistItemResponse[]>([]);
 
-    const [isRefreshingMarketData, setIsRefreshingMarketData] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [isRefreshingMarketData, setIsRefreshingMarketData] = useState(false);
+    const [isUpdatingWatchlist, setIsUpdatingWatchlist] = useState(false);
+
     const [error, setError] = useState("");
     const [warning, setWarning] = useState("");
+
     const reportGenerationLockRef = useRef(false);
 
+    const normalizedTicker = ticker?.toUpperCase() ?? "";
+
+    const isInWatchlist = watchlist.some(
+        (item) => item.ticker.toUpperCase() === normalizedTicker
+    );
+
     useEffect(() => {
-        if (!ticker) {
-            return;
-        }
-
-        setIsLoading(true);
-        setError("");
-        setWarning("");
-
         async function loadAssetDetails() {
-            try {
-                const loadedAsset = await backendClient.getAsset(ticker!);
-                setAsset(loadedAsset);
+            if (!normalizedTicker) {
+                setError("Ticker is required");
+                setIsLoading(false);
+                return;
+            }
 
-                const results = await Promise.allSettled([
-                    backendClient.getMarketData(ticker!),
-                    backendClient.getCandles(ticker!),
-                    backendClient.getAnalyticsSummary(ticker!),
-                    backendClient.getAIReports(ticker!),
+            try {
+                setIsLoading(true);
+                setError("");
+                setWarning("");
+
+                const [
+                    loadedAsset,
+                    loadedMarketData,
+                    loadedCandles,
+                    loadedAnalytics,
+                    loadedReports,
+                    loadedWatchlist,
+                ] = await Promise.all([
+                    backendClient.getAsset(normalizedTicker),
+                    backendClient.getMarketData(normalizedTicker),
+                    backendClient.getCandles(normalizedTicker),
+                    backendClient.getAnalyticsSummary(normalizedTicker),
+                    backendClient.getAIReports(normalizedTicker),
+                    backendClient.getWatchlist(),
                 ]);
 
-                const [marketDataResult, candlesResult, analyticsResult, reportsResult] = results;
-
-                if (marketDataResult.status === "fulfilled") {
-                    setMarketData(marketDataResult.value);
-                }
-
-                if (candlesResult.status === "fulfilled") {
-                    setCandles(candlesResult.value);
-                }
-
-                if (analyticsResult.status === "fulfilled") {
-                    setAnalytics(analyticsResult.value);
-                } else {
-                    setWarning("Для этого актива пока нет полной аналитики. Возможно, не хватает свечей.");
-                }
-
-                if (reportsResult.status === "fulfilled") {
-                    setReports(reportsResult.value);
-                }
+                setAsset(loadedAsset);
+                setMarketData(loadedMarketData);
+                setCandles(loadedCandles);
+                setAnalytics(loadedAnalytics);
+                setReports(loadedReports);
+                setWatchlist(loadedWatchlist);
             } catch (error: unknown) {
-                setError(error instanceof Error ? error.message : "Не удалось загрузить карточку актива");
+                setError(
+                    error instanceof Error
+                        ? error.message
+                        : "Не удалось загрузить карточку актива"
+                );
             } finally {
                 setIsLoading(false);
             }
         }
 
         loadAssetDetails();
-    }, [ticker]);
+    }, [normalizedTicker]);
+
+    async function handleRefreshMarketData() {
+        if (!normalizedTicker) {
+            return;
+        }
+
+        setIsRefreshingMarketData(true);
+        setError("");
+        setWarning("");
+
+        try {
+            const refreshedMarketData =
+                await backendClient.refreshMarketData(normalizedTicker);
+            setMarketData(refreshedMarketData);
+
+            const [refreshedAnalytics, refreshedCandles] = await Promise.all([
+                backendClient.getAnalyticsSummary(normalizedTicker),
+                backendClient.getCandles(normalizedTicker),
+            ]);
+
+            setAnalytics(refreshedAnalytics);
+            setCandles(refreshedCandles);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось обновить рыночные данные"
+            );
+        } finally {
+            setIsRefreshingMarketData(false);
+        }
+    }
 
     async function handleGenerateReport() {
-        if (!ticker || reportGenerationLockRef.current) {
+        if (!normalizedTicker || reportGenerationLockRef.current) {
             return;
         }
 
         reportGenerationLockRef.current = true;
         setIsGeneratingReport(true);
         setError("");
+        setWarning("");
 
         try {
-            const newReport = await backendClient.generateAIReport(ticker);
+            const newReport = await backendClient.generateAIReport(normalizedTicker);
             setReports([newReport]);
-            setWarning("");
         } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Не удалось создать AI-отчёт");
+            setError(
+                error instanceof Error ? error.message : "Не удалось создать AI-отчёт"
+            );
         } finally {
             reportGenerationLockRef.current = false;
             setIsGeneratingReport(false);
         }
     }
 
-    async function handleRefreshMarketData() {
-        if (!ticker) {
+    async function handleToggleWatchlist() {
+        if (!normalizedTicker) {
             return;
         }
 
-        setIsRefreshingMarketData(true);
+        setIsUpdatingWatchlist(true);
         setError("");
+        setWarning("");
 
         try {
-            const refreshedMarketData = await backendClient.refreshMarketData(ticker);
-            setMarketData(refreshedMarketData);
+            if (isInWatchlist) {
+                await backendClient.removeFromWatchlist(normalizedTicker);
 
-            const refreshedAnalytics = await backendClient.getAnalyticsSummary(ticker);
-            setAnalytics(refreshedAnalytics);
+                setWatchlist((currentWatchlist) =>
+                    currentWatchlist.filter(
+                        (item) => item.ticker.toUpperCase() !== normalizedTicker
+                    )
+                );
+
+                setWarning(`${normalizedTicker} убран из watchlist`);
+                return;
+            }
+
+            const addedItem = await backendClient.addToWatchlist(normalizedTicker);
+
+            setWatchlist((currentWatchlist) => {
+                const alreadyExists = currentWatchlist.some(
+                    (item) => item.ticker.toUpperCase() === normalizedTicker
+                );
+
+                if (alreadyExists) {
+                    return currentWatchlist;
+                }
+
+                return [addedItem, ...currentWatchlist];
+            });
+
+            setWarning(`${normalizedTicker} добавлен в watchlist`);
         } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Не удалось обновить рыночные данные");
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось обновить watchlist"
+            );
         } finally {
-            setIsRefreshingMarketData(false);
+            setIsUpdatingWatchlist(false);
         }
     }
 
@@ -124,11 +197,14 @@ export function AssetDetailsPage() {
         return <LoadingBlock text="Загружаем карточку актива..." />;
     }
 
-    if (error && !asset) {
+    if (!asset) {
         return (
             <section className="page">
-                <div className="error-block">{error}</div>
-                <Link to="/assets" className="secondary-link">
+                <div className="error-block">
+                    {error || "Актив не найден"}
+                </div>
+
+                <Link to="/assets" className="primary-button">
                     Вернуться к активам
                 </Link>
             </section>
@@ -137,27 +213,33 @@ export function AssetDetailsPage() {
 
     return (
         <section className="page">
-            <Link to="/assets" className="secondary-link">
-                ← Назад к активам
-            </Link>
+            <div className="page-header">
+                <div>
+                    <p className="eyebrow">{asset.assetType}</p>
+                    <h1>{asset.ticker}</h1>
+                    <p>{asset.name}</p>
+                </div>
 
-            {error && <div className="error-block">{error}</div>}
-            {warning && <div className="warning-block">{warning}</div>}
-
-            {asset && (
-                <div className="asset-details-header">
-                    <div>
-                        <p className="eyebrow">{asset.exchange}</p>
-                        <h1>{asset.ticker}</h1>
-                        <p>{asset.name}</p>
+                <div className="asset-header-side">
+                    <div className="badge-row">
+                        <span>{asset.exchange}</span>
+                        <span>{asset.currency}</span>
+                        <span>{asset.active ? "Active" : "Inactive"}</span>
                     </div>
 
-                    <div className="asset-header-side">
-                        <div className="badge-row">
-                            <span>{asset.assetType}</span>
-                            <span>{asset.currency}</span>
-                            <span>{asset.active ? "Active" : "Inactive"}</span>
-                        </div>
+                    <div className="hero-actions">
+                        <button
+                            type="button"
+                            className={isInWatchlist ? "primary-button" : "ghost-button"}
+                            disabled={isUpdatingWatchlist}
+                            onClick={handleToggleWatchlist}
+                        >
+                            {isUpdatingWatchlist
+                                ? "Обновляем..."
+                                : isInWatchlist
+                                    ? "В watchlist"
+                                    : "Добавить в watchlist"}
+                        </button>
 
                         <button
                             type="button"
@@ -167,158 +249,247 @@ export function AssetDetailsPage() {
                         >
                             {isRefreshingMarketData ? "Обновляем..." : "Обновить цену"}
                         </button>
+
+                        <Link to="/watchlist" className="ghost-button">
+                            Открыть watchlist
+                        </Link>
                     </div>
                 </div>
-            )}
+            </div>
 
-            <div className="grid-3">
-                <article className="info-card">
-                    <h3>Текущая цена</h3>
-                    <strong className="big-number">{marketData?.price ?? "—"}</strong>
-                    <p>Источник: {marketData?.source ?? "—"}</p>
+            {error && <div className="error-block">{error}</div>}
+            {warning && <div className="empty-state">{warning}</div>}
+
+            <div className="dashboard-stats">
+                <article className="dashboard-stat-card">
+                    <span>Текущая цена</span>
+                    <strong>{formatNumber(marketData?.price)}</strong>
+                    <p>{marketData?.source ?? "—"}</p>
                 </article>
 
-                <article className="info-card">
-                    <h3>Изменение</h3>
-                    <strong className="big-number">
-                        {analytics ? `${analytics.priceChangePercent}%` : "—"}
-                    </strong>
-                    <p>По доступным дневным свечам</p>
+                <article className="dashboard-stat-card">
+                    <span>Объём</span>
+                    <strong>{formatNumber(marketData?.volume)}</strong>
+                    <p>Последняя рыночная запись</p>
                 </article>
 
-                <article className="info-card">
-                    <h3>Риск</h3>
-                    <strong className={`risk risk-${analytics?.riskLevel?.toLowerCase() ?? "unknown"}`}>
-                        {analytics?.riskLevel ?? "—"}
-                    </strong>
-                    <p>Score: {analytics?.riskScore ?? "—"} / 100</p>
+                <article className="dashboard-stat-card">
+                    <span>Risk score</span>
+                    <strong>{analytics?.riskScore ?? "—"}</strong>
+                    <p>{analytics?.riskLevel ?? "—"}</p>
+                </article>
+
+                <article className="dashboard-stat-card">
+                    <span>Изменение</span>
+                    <strong>{formatPercent(analytics?.priceChangePercent)}</strong>
+                    <p>{formatNumber(analytics?.priceChange)}</p>
+                </article>
+
+                <article className="dashboard-stat-card">
+                    <span>Волатильность</span>
+                    <strong>{formatPercent(analytics?.volatilityPercent)}</strong>
+                    <p>{analytics?.dataPoints ?? 0} точек данных</p>
                 </article>
             </div>
 
-            <MiniLineChart candles={candles} />
-
-            <div className="content-grid">
+            <div className="dashboard-grid">
                 <article className="panel">
-                    <h2>Аналитика</h2>
-
-                    {analytics ? (
-                        <div className="metrics-table">
-                            <div>
-                                <span>Текущая цена</span>
-                                <strong>{analytics.currentPrice}</strong>
-                            </div>
-                            <div>
-                                <span>Первая цена закрытия</span>
-                                <strong>{analytics.firstClose}</strong>
-                            </div>
-                            <div>
-                                <span>Последняя цена закрытия</span>
-                                <strong>{analytics.lastClose}</strong>
-                            </div>
-                            <div>
-                                <span>Средний объём</span>
-                                <strong>{analytics.averageVolume}</strong>
-                            </div>
-                            <div>
-                                <span>Волатильность</span>
-                                <strong>{analytics.volatilityPercent}%</strong>
-                            </div>
-                            <div>
-                                <span>Точек данных</span>
-                                <strong>{analytics.dataPoints}</strong>
-                            </div>
+                    <div className="panel-header">
+                        <div>
+                            <h2>График свечей</h2>
+                            <p>Мини-график по close-ценам за доступный период.</p>
                         </div>
-                    ) : (
-                        <p>Аналитика пока недоступна для этого актива.</p>
-                    )}
+                    </div>
+
+                    <InlineMiniChart candles={candles} />
+
+                    <div className="dashboard-asset-list">
+                        {candles.slice(-5).reverse().map((candle) => (
+                            <div
+                                className="dashboard-asset-card"
+                                key={`${candle.timestamp}-${candle.close}`}
+                            >
+                                <div>
+                                    <strong>{formatDate(candle.timestamp)}</strong>
+                                    <span>{candle.source}</span>
+                                </div>
+
+                                <div className="dashboard-asset-metrics">
+                                    <span>O {formatNumber(candle.open)}</span>
+                                    <span>H {formatNumber(candle.high)}</span>
+                                    <span>L {formatNumber(candle.low)}</span>
+                                    <span>C {formatNumber(candle.close)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </article>
 
                 <article className="panel">
                     <div className="panel-header">
                         <div>
-                            <h2>AI-отчёты</h2>
-                            <p>Mock-отчёты на основе рассчитанных метрик.</p>
+                            <h2>Аналитика</h2>
+                            <p>Сводные метрики по активному источнику данных.</p>
                         </div>
-
-                        <button
-                            type="button"
-                            className="primary-button"
-                            disabled={isGeneratingReport}
-                            onClick={handleGenerateReport}
-                        >
-                            {isGeneratingReport ? "Формируем..." : "Создать отчёт"}
-                        </button>
                     </div>
 
-                    <div className="report-list">
-                        {reports.length === 0 && <p>Пока нет AI-отчётов.</p>}
-
-                        {reports.map((report) => (
-                            <article className="report-card" key={report.id}>
-                                <div className="report-list">
-                                    {reports.length === 0 && <p>Пока нет AI-отчётов.</p>}
-
-                                    {reports.map((report) => (
-                                        <AIReportCard report={report} key={report.id} />
-                                    ))}
-                                </div>
-
-                                <p>{report.summary}</p>
-
-                                <h4>Позитивные факторы</h4>
-                                <ul>
-                                    {report.positiveFactors.map((factor) => (
-                                        <li key={factor}>{factor}</li>
-                                    ))}
-                                </ul>
-
-                                <h4>Негативные факторы</h4>
-                                <ul>
-                                    {report.negativeFactors.map((factor) => (
-                                        <li key={factor}>{factor}</li>
-                                    ))}
-                                </ul>
-
-                                <details>
-                                    <summary>Объяснение</summary>
-                                    <p>{report.explanation}</p>
-                                    <small>{report.disclaimer}</small>
-                                </details>
-                            </article>
-                        ))}
-                    </div>
+                    {analytics ? (
+                        <div className="dashboard-asset-list">
+                            <MetricRow label="First close" value={formatNumber(analytics.firstClose)} />
+                            <MetricRow label="Last close" value={formatNumber(analytics.lastClose)} />
+                            <MetricRow label="Average volume" value={formatNumber(analytics.averageVolume)} />
+                            <MetricRow label="Data points" value={analytics.dataPoints.toString()} />
+                            <MetricRow label="Risk level" value={analytics.riskLevel} />
+                        </div>
+                    ) : (
+                        <div className="empty-state">
+                            <h3>Аналитика недоступна</h3>
+                            <p>Backend не вернул сводку по этому активу.</p>
+                        </div>
+                    )}
                 </article>
             </div>
 
             <article className="panel">
-                <h2>Свечи</h2>
-
-                {candles.length === 0 ? (
-                    <p>Свечи пока недоступны.</p>
-                ) : (
-                    <div className="candles-table">
-                        <div className="candles-row candles-head">
-                            <span>Дата</span>
-                            <span>Open</span>
-                            <span>High</span>
-                            <span>Low</span>
-                            <span>Close</span>
-                            <span>Volume</span>
-                        </div>
-
-                        {candles.map((candle) => (
-                            <div className="candles-row" key={candle.timestamp}>
-                                <span>{new Date(candle.timestamp).toLocaleDateString("ru-RU")}</span>
-                                <span>{candle.open}</span>
-                                <span>{candle.high}</span>
-                                <span>{candle.low}</span>
-                                <span>{candle.close}</span>
-                                <span>{candle.volume}</span>
-                            </div>
-                        ))}
+                <div className="panel-header">
+                    <div>
+                        <h2>AI-отчёт</h2>
+                        <p>
+                            Отчёт создаётся через активный AI-провайдер. Если реальный
+                            провайдер недоступен, backend использует fallback.
+                        </p>
                     </div>
-                )}
+
+                    <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isGeneratingReport}
+                        onClick={handleGenerateReport}
+                    >
+                        {isGeneratingReport ? "Создаём..." : "Создать отчёт"}
+                    </button>
+                </div>
+
+                <div className="report-list">
+                    {reports.length === 0 && (
+                        <div className="empty-state">
+                            <h3>Отчётов пока нет</h3>
+                            <p>Нажми «Создать отчёт», чтобы получить AI-анализ актива.</p>
+                        </div>
+                    )}
+
+                    {reports.map((report) => (
+                        <AIReportCard report={report} key={report.id} />
+                    ))}
+                </div>
             </article>
         </section>
     );
+}
+
+type MetricRowProps = {
+    label: string;
+    value: string;
+};
+
+function MetricRow({ label, value }: MetricRowProps) {
+    return (
+        <div className="dashboard-asset-card">
+            <div>
+                <strong>{label}</strong>
+            </div>
+
+            <div className="dashboard-asset-metrics">
+                <span>{value}</span>
+            </div>
+        </div>
+    );
+}
+
+type InlineMiniChartProps = {
+    candles: CandleResponse[];
+};
+
+function InlineMiniChart({ candles }: InlineMiniChartProps) {
+    if (candles.length < 2) {
+        return (
+            <div className="empty-state">
+                <h3>Недостаточно свечей</h3>
+                <p>Для графика нужно минимум две точки данных.</p>
+            </div>
+        );
+    }
+
+    const closes = candles.map((candle) => candle.close);
+    const minClose = Math.min(...closes);
+    const maxClose = Math.max(...closes);
+    const width = 720;
+    const height = 220;
+    const padding = 18;
+    const range = maxClose - minClose || 1;
+
+    const points = closes
+        .map((close, index) => {
+            const x =
+                padding +
+                (index / Math.max(closes.length - 1, 1)) * (width - padding * 2);
+
+            const y =
+                height -
+                padding -
+                ((close - minClose) / range) * (height - padding * 2);
+
+            return `${x},${y}`;
+        })
+        .join(" ");
+
+    return (
+        <div className="ai-report-summary">
+            <svg
+                viewBox={`0 0 ${width} ${height}`}
+                role="img"
+                aria-label="Mini close price chart"
+                style={{ width: "100%", height: "220px" }}
+            >
+                <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={points}
+                />
+            </svg>
+
+            <p>
+                Диапазон close: {formatNumber(minClose)} — {formatNumber(maxClose)}
+            </p>
+        </div>
+    );
+}
+
+function formatNumber(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        return "—";
+    }
+
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 6,
+    }).format(value);
+}
+
+function formatPercent(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        return "—";
+    }
+
+    return `${formatNumber(value)}%`;
+}
+
+function formatDate(value: string | null | undefined): string {
+    if (!value) {
+        return "—";
+    }
+
+    return new Date(value).toLocaleString("ru-RU");
 }
