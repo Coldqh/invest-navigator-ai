@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { backendClient } from "../api/backendClient";
 import { LoadingBlock } from "../components/LoadingBlock";
 import { MiniLineChart } from "../components/MiniLineChart";
+import { AIReportCard } from "../components/AIReportCard";
 import type {
     AIReportResponse,
     AnalyticsSummaryResponse,
@@ -218,9 +219,12 @@ export function AssetDetailsPage() {
 
                         {reports.map((report) => (
                             <article className="report-card" key={report.id}>
-                                <div className="report-card-header">
-                                    <strong>{report.riskLevel}</strong>
-                                    <span>{new Date(report.createdAt).toLocaleString("ru-RU")}</span>
+                                <div className="report-list">
+                                    {reports.length === 0 && <p>Пока нет AI-отчётов.</p>}
+
+                                    {reports.map((report) => (
+                                        <AIReportCard report={report} key={report.id} />
+                                    ))}
                                 </div>
 
                                 <p>{report.summary}</p>
