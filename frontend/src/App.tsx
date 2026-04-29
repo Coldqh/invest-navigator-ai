@@ -2,9 +2,10 @@ import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { AssetDetailsPage } from "./pages/AssetDetailsPage";
 import { AssetsPage } from "./pages/AssetsPage";
+import { ComparePage } from "./pages/ComparePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { ComparePage } from "./pages/ComparePage";
+import { WatchlistPage } from "./pages/WatchlistPage";
 
 export function App() {
     return (
@@ -13,8 +14,9 @@ export function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="assets" element={<AssetsPage />} />
                 <Route path="assets/:ticker" element={<AssetDetailsPage />} />
-                <Route path="*" element={<NotFoundPage />} />
                 <Route path="compare" element={<ComparePage />} />
+                <Route path="watchlist" element={<WatchlistPage />} />
+                <Route path="*" element={<NotFoundPage />} />
             </Route>
         </Routes>
     );

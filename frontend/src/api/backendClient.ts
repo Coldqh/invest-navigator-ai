@@ -9,6 +9,7 @@ import type {
     MarketDataProviderHealthResponse,
     MarketDataProviderStatusResponse,
     MarketPriceResponse,
+    WatchlistItemResponse,
 } from "../types/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
@@ -33,6 +34,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         }
 
         throw new Error(message);
+    }
+
+    if (response.status === 204) {
+        return undefined as T;
     }
 
     return response.json() as Promise<T>;
@@ -96,5 +101,21 @@ export const backendClient = {
 
     getAIProviderHealth(): Promise<AIProviderHealthResponse> {
         return request<AIProviderHealthResponse>("/api/ai/provider/health");
+    },
+
+    getWatchlist(): Promise<WatchlistItemResponse[]> {
+        return request<WatchlistItemResponse[]>("/api/watchlist");
+    },
+
+    addToWatchlist(ticker: string): Promise<WatchlistItemResponse> {
+        return request<WatchlistItemResponse>(`/api/watchlist/${ticker}`, {
+            method: "POST",
+        });
+    },
+
+    removeFromWatchlist(ticker: string): Promise<void> {
+        return request<void>(`/api/watchlist/${ticker}`, {
+            method: "DELETE",
+        });
     },
 };

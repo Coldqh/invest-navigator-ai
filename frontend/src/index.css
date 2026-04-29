@@ -703,3 +703,58 @@ code {
 .provider-status-card strong {
   color: #93c5fd;
 }
+
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.watchlist-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  background:
+          radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 18rem),
+          rgba(2, 6, 23, 0.34);
+}
+
+.watchlist-card h3 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  letter-spacing: -0.05em;
+}
+
+.watchlist-card p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.watchlist-card-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.watchlist-card-metrics > span:not(.risk) {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.watchlist-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 920px) {
+  .watchlist-grid {
+    grid-template-columns: 1fr;
+  }
+}

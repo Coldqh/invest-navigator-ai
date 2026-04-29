@@ -97,6 +97,19 @@ export type AIReportResponse = {
     createdAt: string;
 };
 
+export type WatchlistItemResponse = {
+    id: string;
+    assetId: string;
+    ticker: string;
+    name: string;
+    assetType: AssetType;
+    exchange: string;
+    currency: string;
+    isin: string | null;
+    active: boolean;
+    createdAt: string;
+};
+
 export type ApiErrorResponse = {
     timestamp: string;
     status: number;

@@ -987,3 +987,44 @@ databaseChangeLog:
                   ALTER TABLE ai_report_negative_factors
                   ALTER COLUMN negative_factor SET NOT NULL;
               END $$;
+
+  - changeSet:
+      id: 012-create-watchlist-items
+      author: vlad
+      changes:
+        - sql:
+            splitStatements: false
+            stripComments: true
+            sql: |
+              CREATE TABLE IF NOT EXISTS watchlist_items (
+                  id UUID PRIMARY KEY,
+                  asset_id UUID NOT NULL,
+                  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+              );
+
+              DO $$
+              BEGIN
+                  IF NOT EXISTS (
+                      SELECT 1
+                      FROM pg_constraint
+                      WHERE conname = 'uk_watchlist_items_asset_id'
+                  ) THEN
+                      ALTER TABLE watchlist_items
+                      ADD CONSTRAINT uk_watchlist_items_asset_id UNIQUE (asset_id);
+                  END IF;
+              END $$;
+
+              DO $$
+              BEGIN
+                  IF NOT EXISTS (
+                      SELECT 1
+                      FROM pg_constraint
+                      WHERE conname = 'fk_watchlist_items_asset_id'
+                  ) THEN
+                      ALTER TABLE watchlist_items
+                      ADD CONSTRAINT fk_watchlist_items_asset_id
+                      FOREIGN KEY (asset_id)
+                      REFERENCES assets(id)
+                      ON DELETE CASCADE;
+                  END IF;
+              END $$;

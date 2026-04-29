@@ -1,16 +1,16 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 
 export function AppLayout() {
     return (
         <div className="app-shell">
-            <aside className="sidebar">
-                <Link to="/" className="brand">
-                    <span className="brand-mark">ИИ</span>
-                    <span>
-            <strong>ИнвестНавигатор</strong>
-            <small>Investment analysis platform</small>
-          </span>
-                </Link>
+            <header className="app-header">
+                <NavLink to="/" className="brand">
+                    <span className="brand-mark">IN</span>
+                    <div>
+                        <strong>Invest Navigator AI</strong>
+                        <small>Market analytics platform</small>
+                    </div>
+                </NavLink>
 
                 <nav className="nav">
                     <NavLink to="/" end>
@@ -22,10 +22,13 @@ export function AppLayout() {
                     <NavLink to="/compare">
                         Сравнение
                     </NavLink>
+                    <NavLink to="/watchlist">
+                        Watchlist
+                    </NavLink>
                 </nav>
-            </aside>
+            </header>
 
-            <main className="main">
+            <main className="app-main">
                 <Outlet />
             </main>
         </div>
