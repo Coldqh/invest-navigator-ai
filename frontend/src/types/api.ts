@@ -8,6 +8,19 @@ export type AssetType =
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+export type MarketDataProviderType =
+    | "DEMO"
+    | "BINANCE"
+    | "MOEX"
+    | "T_INVEST"
+    | "HYBRID";
+
+export type ProviderHealthStatus =
+    | "AVAILABLE"
+    | "DEGRADED"
+    | "UNAVAILABLE"
+    | "NOT_CONFIGURED";
+
 export type AssetResponse = {
     id: string;
     ticker: string;
@@ -80,6 +93,20 @@ export type ApiErrorResponse = {
 };
 
 export type MarketDataProviderStatusResponse = {
-    activeProvider: "DEMO" | "BINANCE" | "MOEX" | "T_INVEST" | "HYBRID";
+    activeProvider: MarketDataProviderType;
     status: string;
+};
+
+export type MarketDataProviderHealthItemResponse = {
+    type: MarketDataProviderType;
+    status: ProviderHealthStatus;
+    message: string;
+    checkedAt: string;
+};
+
+export type MarketDataProviderHealthResponse = {
+    activeProvider: MarketDataProviderType;
+    status: ProviderHealthStatus;
+    providers: MarketDataProviderHealthItemResponse[];
+    checkedAt: string;
 };

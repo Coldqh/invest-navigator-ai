@@ -6,7 +6,8 @@ import type {
     AIReportResponse,
     AnalyticsSummaryResponse,
     AssetResponse,
-    MarketDataProviderStatusResponse,
+    MarketDataProviderHealthResponse,
+    ProviderHealthStatus,
 } from "../types/api";
 
 type DashboardAsset = {
@@ -25,7 +26,8 @@ export function DashboardPage() {
     const [assets, setAssets] = useState<AssetResponse[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse[]>([]);
     const [reports, setReports] = useState<AIReportResponse[]>([]);
-    const [providerStatus, setProviderStatus] = useState<MarketDataProviderStatusResponse | null>(null);
+    const [providerHealth, setProviderHealth] =
+        useState<MarketDataProviderHealthResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -82,8 +84,8 @@ export function DashboardPage() {
                 setIsLoading(true);
                 setError("");
 
-                const loadedProviderStatus = await backendClient.getMarketDataProviderStatus();
-                setProviderStatus(loadedProviderStatus);
+                const loadedProviderHealth = await backendClient.getMarketDataProviderHealth();
+                setProviderHealth(loadedProviderHealth);
 
                 const loadedAssets = await backendClient.getAssets();
                 setAssets(loadedAssets);
@@ -149,8 +151,8 @@ export function DashboardPage() {
                     <p className="eyebrow">Dashboard</p>
                     <h1>ИнвестНавигатор ИИ</h1>
                     <p>
-                        Главная панель проекта: активы, риск, рыночные метрики и последние
-                        AI-отчёты.
+                        Главная панель проекта: активы, риск, рыночные метрики, провайдеры
+                        данных и последние AI-отчёты.
                     </p>
                 </div>
 
@@ -190,12 +192,42 @@ export function DashboardPage() {
                     <strong>{riskOverview.mostCommonRiskLevel}</strong>
                     <p>Самый высокий риск среди активов</p>
                 </article>
+
+                <article className="dashboard-stat-card provider-status-card">
+                    <span>Источник данных</span>
+                    <strong>{providerHealth?.activeProvider ?? "—"}</strong>
+                    <p>{providerHealth?.status ?? "UNKNOWN"}</p>
+                </article>
             </div>
 
-            <article className="dashboard-stat-card provider-status-card">
-                <span>Источник данных</span>
-                <strong>{providerStatus?.activeProvider ?? "—"}</strong>
-                <p>{providerStatus?.status ?? "UNKNOWN"}</p>
+            <article className="panel">
+                <div className="panel-header">
+                    <div>
+                        <h2>Состояние провайдеров</h2>
+                        <p>Проверка доступности источников рыночных данных.</p>
+                    </div>
+                </div>
+
+                {providerHealth ? (
+                    <div className="risk-leaderboard">
+                        {providerHealth.providers.map((provider) => (
+                            <div className="risk-leaderboard-row" key={provider.type}>
+                                <span>{provider.type}</span>
+
+                                <div>
+                                    <strong>{provider.status}</strong>
+                                    <small>{provider.message}</small>
+                                </div>
+
+                                <span className={getProviderStatusClass(provider.status)}>
+                  {provider.status}
+                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p>Информация о провайдерах недоступна.</p>
+                )}
             </article>
 
             <div className="dashboard-grid">
@@ -315,4 +347,20 @@ export function DashboardPage() {
             </article>
         </section>
     );
+}
+
+function getProviderStatusClass(status: ProviderHealthStatus): string {
+    if (status === "AVAILABLE") {
+        return "risk risk-low";
+    }
+
+    if (status === "DEGRADED") {
+        return "risk risk-medium";
+    }
+
+    if (status === "UNAVAILABLE") {
+        return "risk risk-critical";
+    }
+
+    return "risk risk-unknown";
 }
