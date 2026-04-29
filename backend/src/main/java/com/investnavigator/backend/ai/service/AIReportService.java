@@ -6,6 +6,7 @@ import com.investnavigator.backend.ai.mapper.AIReportMapper;
 import com.investnavigator.backend.ai.model.AIReport;
 import com.investnavigator.backend.ai.provider.AIProvider;
 import com.investnavigator.backend.ai.provider.AIProviderRegistry;
+import com.investnavigator.backend.ai.provider.AIProviderType;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisResult;
 import com.investnavigator.backend.ai.repository.AIReportRepository;
@@ -15,6 +16,8 @@ import com.investnavigator.backend.asset.model.Asset;
 import com.investnavigator.backend.asset.repository.AssetRepository;
 import com.investnavigator.backend.common.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AIReportService {
+
+    private static final Logger log = LoggerFactory.getLogger(AIReportService.class);
 
     private final AssetRepository assetRepository;
     private final AIReportRepository aiReportRepository;
@@ -39,15 +44,7 @@ public class AIReportService {
 
         AnalyticsSummaryResponse analytics = analyticsService.getSummary(ticker);
 
-        AIProvider aiProvider = aiProviderRegistry.getProvider(aiProperties.provider());
-
-        AIAnalysisResult analysisResult = aiProvider.analyze(
-                new AIAnalysisRequest(
-                        asset.getTicker(),
-                        asset.getName(),
-                        analytics
-                )
-        );
+        AIAnalysisResult analysisResult = analyzeWithFallback(asset, analytics);
 
         aiReportRepository.deleteByAsset(asset);
         aiReportRepository.flush();
@@ -85,5 +82,39 @@ public class AIReportService {
         return aiReportRepository.findById(reportId)
                 .map(aiReportMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("AI report not found: " + reportId));
+    }
+
+    private AIAnalysisResult analyzeWithFallback(
+            Asset asset,
+            AnalyticsSummaryResponse analytics
+    ) {
+        AIProviderType activeProviderType = aiProperties.provider();
+
+        AIAnalysisRequest request = new AIAnalysisRequest(
+                asset.getTicker(),
+                asset.getName(),
+                analytics
+        );
+
+        AIProvider activeProvider = aiProviderRegistry.getProvider(activeProviderType);
+
+        try {
+            return activeProvider.analyze(request);
+        } catch (RuntimeException exception) {
+            if (activeProviderType == AIProviderType.MOCK) {
+                throw exception;
+            }
+
+            log.warn(
+                    "AI provider {} failed for asset {}. Falling back to MOCK provider. Reason: {}",
+                    activeProviderType,
+                    asset.getTicker(),
+                    exception.getMessage()
+            );
+
+            AIProvider mockProvider = aiProviderRegistry.getProvider(AIProviderType.MOCK);
+
+            return mockProvider.analyze(request);
+        }
     }
 }
