@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisResult;
 import com.investnavigator.backend.ai.provider.dto.AIProviderJsonPayload;
 import com.investnavigator.backend.analytics.dto.AnalyticsSummaryResponse;
+import com.investnavigator.backend.analytics.model.RiskLevel;
+import com.investnavigator.backend.portfolio.dto.PortfolioSummaryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,23 +27,48 @@ public class AIProviderJsonParser {
     private final ObjectMapper objectMapper;
 
     public AIAnalysisResult parse(String rawText, AnalyticsSummaryResponse fallbackAnalytics) {
+        AIProviderJsonPayload payload = parsePayload(rawText);
+
+        return new AIAnalysisResult(
+                safeString(payload.summary(), buildFallbackSummary(fallbackAnalytics)),
+                safeList(payload.positiveFactors(), "No positive factors were provided by the AI provider."),
+                safeList(payload.negativeFactors(), "No negative factors were provided by the AI provider."),
+                payload.riskLevel() == null ? fallbackAnalytics.riskLevel() : payload.riskLevel(),
+                payload.riskScore() == null ? fallbackAnalytics.riskScore() : clampRiskScore(payload.riskScore()),
+                safeConfidence(payload.confidence()),
+                safeString(payload.explanation(), buildFallbackExplanation(fallbackAnalytics)),
+                safeString(payload.disclaimer(), DEFAULT_DISCLAIMER)
+        );
+    }
+
+    public AIAnalysisResult parsePortfolio(
+            String rawText,
+            PortfolioSummaryResponse fallbackPortfolio
+    ) {
+        AIProviderJsonPayload payload = parsePayload(rawText);
+
+        int fallbackRiskScore = calculatePortfolioFallbackRiskScore(fallbackPortfolio);
+        RiskLevel fallbackRiskLevel = calculateRiskLevel(fallbackRiskScore);
+
+        return new AIAnalysisResult(
+                safeString(payload.summary(), buildPortfolioFallbackSummary(fallbackPortfolio)),
+                safeList(payload.positiveFactors(), "No positive portfolio factors were provided by the AI provider."),
+                safeList(payload.negativeFactors(), "No negative portfolio factors were provided by the AI provider."),
+                payload.riskLevel() == null ? fallbackRiskLevel : payload.riskLevel(),
+                payload.riskScore() == null ? fallbackRiskScore : clampRiskScore(payload.riskScore()),
+                safeConfidence(payload.confidence()),
+                safeString(payload.explanation(), buildPortfolioFallbackExplanation(fallbackPortfolio, fallbackRiskScore, fallbackRiskLevel)),
+                safeString(payload.disclaimer(), DEFAULT_DISCLAIMER)
+        );
+    }
+
+    private AIProviderJsonPayload parsePayload(String rawText) {
         String json = extractJsonObject(rawText);
 
         try {
-            AIProviderJsonPayload payload = objectMapper.readValue(
+            return objectMapper.readValue(
                     json,
                     AIProviderJsonPayload.class
-            );
-
-            return new AIAnalysisResult(
-                    safeString(payload.summary(), buildFallbackSummary(fallbackAnalytics)),
-                    safeList(payload.positiveFactors(), "No positive factors were provided by the AI provider."),
-                    safeList(payload.negativeFactors(), "No negative factors were provided by the AI provider."),
-                    payload.riskLevel() == null ? fallbackAnalytics.riskLevel() : payload.riskLevel(),
-                    payload.riskScore() == null ? fallbackAnalytics.riskScore() : clampRiskScore(payload.riskScore()),
-                    safeConfidence(payload.confidence()),
-                    safeString(payload.explanation(), buildFallbackExplanation(fallbackAnalytics)),
-                    safeString(payload.disclaimer(), DEFAULT_DISCLAIMER)
             );
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException(
@@ -131,5 +158,84 @@ public class AIProviderJsonParser {
                 analytics.riskLevel(),
                 analytics.dataPoints()
         );
+    }
+
+    private String buildPortfolioFallbackSummary(PortfolioSummaryResponse portfolio) {
+        return "Portfolio was analyzed using available position metrics.";
+    }
+
+    private String buildPortfolioFallbackExplanation(
+            PortfolioSummaryResponse portfolio,
+            int riskScore,
+            RiskLevel riskLevel
+    ) {
+        return """
+                Fallback portfolio explanation generated because the AI provider response did not include a valid explanation.
+                
+                Positions count: %s
+                Total invested: %s
+                Total current value: %s
+                Total profit/loss: %s
+                Total profit/loss percent: %s%%
+                Risk score: %s / 100
+                Risk level: %s
+                """.formatted(
+                portfolio.positionsCount(),
+                portfolio.totalInvested(),
+                portfolio.totalCurrentValue(),
+                portfolio.totalProfitLoss(),
+                portfolio.totalProfitLossPercent(),
+                riskScore,
+                riskLevel
+        );
+    }
+
+    private int calculatePortfolioFallbackRiskScore(PortfolioSummaryResponse portfolio) {
+        int score = 20;
+
+        if (portfolio.positionsCount() <= 1) {
+            score += 25;
+        } else if (portfolio.positionsCount() <= 2) {
+            score += 15;
+        } else if (portfolio.positionsCount() <= 4) {
+            score += 8;
+        }
+
+        if (portfolio.totalProfitLossPercent().compareTo(BigDecimal.valueOf(-20)) <= 0) {
+            score += 25;
+        } else if (portfolio.totalProfitLossPercent().compareTo(BigDecimal.valueOf(-10)) <= 0) {
+            score += 15;
+        } else if (portfolio.totalProfitLossPercent().compareTo(BigDecimal.ZERO) < 0) {
+            score += 8;
+        }
+
+        long cryptoPositions = portfolio.positions()
+                .stream()
+                .filter(position -> "CRYPTO".equals(position.assetType().name()))
+                .count();
+
+        if (cryptoPositions == portfolio.positionsCount() && portfolio.positionsCount() > 0) {
+            score += 20;
+        } else if (cryptoPositions > 0) {
+            score += 10;
+        }
+
+        return clampRiskScore(score);
+    }
+
+    private RiskLevel calculateRiskLevel(int riskScore) {
+        if (riskScore >= 80) {
+            return RiskLevel.CRITICAL;
+        }
+
+        if (riskScore >= 60) {
+            return RiskLevel.HIGH;
+        }
+
+        if (riskScore >= 35) {
+            return RiskLevel.MEDIUM;
+        }
+
+        return RiskLevel.LOW;
     }
 }

@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "market-data")
 public record MarketDataProperties(
         MarketDataProviderType provider,
-        Binance binance
+        Binance binance,
+        Moex moex
 ) {
     public MarketDataProperties {
         if (provider == null) {
@@ -16,6 +17,10 @@ public record MarketDataProperties(
         if (binance == null) {
             binance = new Binance("https://api.binance.com");
         }
+
+        if (moex == null) {
+            moex = new Moex("https://iss.moex.com");
+        }
     }
 
     public record Binance(
@@ -24,6 +29,16 @@ public record MarketDataProperties(
         public Binance {
             if (baseUrl == null || baseUrl.isBlank()) {
                 baseUrl = "https://api.binance.com";
+            }
+        }
+    }
+
+    public record Moex(
+            String baseUrl
+    ) {
+        public Moex {
+            if (baseUrl == null || baseUrl.isBlank()) {
+                baseUrl = "https://iss.moex.com";
             }
         }
     }

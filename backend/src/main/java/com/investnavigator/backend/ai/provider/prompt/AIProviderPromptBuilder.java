@@ -1,9 +1,14 @@
 package com.investnavigator.backend.ai.provider.prompt;
 
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisRequest;
+import com.investnavigator.backend.ai.provider.dto.AIPortfolioAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIProviderPrompt;
 import com.investnavigator.backend.analytics.dto.AnalyticsSummaryResponse;
+import com.investnavigator.backend.portfolio.dto.PortfolioPositionResponse;
+import com.investnavigator.backend.portfolio.dto.PortfolioSummaryResponse;
 import org.springframework.stereotype.Service;
+
+import java.util.stream.Collectors;
 
 @Service
 public class AIProviderPromptBuilder {
@@ -12,6 +17,13 @@ public class AIProviderPromptBuilder {
         return new AIProviderPrompt(
                 buildSystemPrompt(),
                 buildUserPrompt(request)
+        );
+    }
+
+    public AIProviderPrompt buildPortfolioPrompt(AIPortfolioAnalysisRequest request) {
+        return new AIProviderPrompt(
+                buildSystemPrompt(),
+                buildPortfolioUserPrompt(request)
         );
     }
 
@@ -76,6 +88,80 @@ public class AIProviderPromptBuilder {
                 analytics.riskScore(),
                 analytics.riskLevel(),
                 analytics.dataPoints()
+        );
+    }
+
+    private String buildPortfolioUserPrompt(AIPortfolioAnalysisRequest request) {
+        PortfolioSummaryResponse portfolio = request.portfolio();
+
+        String positionsText = portfolio.positions()
+                .stream()
+                .map(this::formatPortfolioPosition)
+                .collect(Collectors.joining("\n"));
+
+        return """
+                Analyze this investment portfolio using the provided metrics.
+                
+                Portfolio totals:
+                - Positions count: %s
+                - Total invested: %s
+                - Total current value: %s
+                - Total profit/loss: %s
+                - Total profit/loss percent: %s%%
+                - Calculated at: %s
+                
+                Portfolio positions:
+                %s
+                
+                Focus on:
+                - portfolio concentration;
+                - profit and loss situation;
+                - risky positions;
+                - balance between crypto and stocks;
+                - whether the portfolio looks stable or speculative.
+                
+                Return only JSON matching the required schema.
+                """.formatted(
+                portfolio.positionsCount(),
+                portfolio.totalInvested(),
+                portfolio.totalCurrentValue(),
+                portfolio.totalProfitLoss(),
+                portfolio.totalProfitLossPercent(),
+                portfolio.calculatedAt(),
+                positionsText
+        );
+    }
+
+    private String formatPortfolioPosition(PortfolioPositionResponse position) {
+        return """
+                - %s / %s:
+                  name: %s
+                  type: %s
+                  exchange: %s
+                  currency: %s
+                  quantity: %s
+                  average buy price: %s
+                  invested amount: %s
+                  current price: %s
+                  current value: %s
+                  profit/loss: %s
+                  profit/loss percent: %s%%
+                  price source: %s
+                """.formatted(
+                position.ticker(),
+                position.assetId(),
+                position.name(),
+                position.assetType(),
+                position.exchange(),
+                position.currency(),
+                position.quantity(),
+                position.averageBuyPrice(),
+                position.investedAmount(),
+                position.currentPrice(),
+                position.currentValue(),
+                position.profitLoss(),
+                position.profitLossPercent(),
+                position.priceSource()
         );
     }
 }

@@ -9,7 +9,7 @@ import com.investnavigator.backend.marketdata.dto.MarketPriceResponse;
 import com.investnavigator.backend.marketdata.model.Timeframe;
 import com.investnavigator.backend.marketdata.provider.MarketDataProvider;
 import com.investnavigator.backend.marketdata.provider.MarketDataProviderType;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -18,10 +18,15 @@ import java.time.Instant;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class BinanceMarketDataProvider implements MarketDataProvider {
 
     private final RestClient binanceRestClient;
+
+    public BinanceMarketDataProvider(
+            @Qualifier("binanceRestClient") RestClient binanceRestClient
+    ) {
+        this.binanceRestClient = binanceRestClient;
+    }
 
     @Override
     public MarketDataProviderType getType() {
@@ -84,15 +89,15 @@ public class BinanceMarketDataProvider implements MarketDataProvider {
         }
 
         return response.stream()
-                .map(this::toCandleResponse)
+                .map(row -> toCandleResponse(row, timeframe))
                 .toList();
     }
 
-    private CandleResponse toCandleResponse(List<Object> row) {
+    private CandleResponse toCandleResponse(List<Object> row, Timeframe timeframe) {
         long openTime = Long.parseLong(row.get(0).toString());
 
         return new CandleResponse(
-                Timeframe.ONE_DAY,
+                timeframe,
                 toBigDecimal(row.get(1)),
                 toBigDecimal(row.get(2)),
                 toBigDecimal(row.get(3)),

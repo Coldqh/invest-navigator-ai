@@ -6,6 +6,7 @@ import com.investnavigator.backend.ai.provider.AIProvider;
 import com.investnavigator.backend.ai.provider.AIProviderType;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisResult;
+import com.investnavigator.backend.ai.provider.dto.AIPortfolioAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIProviderJsonPayload;
 import com.investnavigator.backend.ai.provider.dto.AIProviderPrompt;
 import com.investnavigator.backend.ai.provider.dto.AIProviderRawResponse;
@@ -13,6 +14,8 @@ import com.investnavigator.backend.ai.provider.parser.AIProviderJsonParser;
 import com.investnavigator.backend.ai.provider.prompt.AIProviderPromptBuilder;
 import com.investnavigator.backend.analytics.dto.AnalyticsSummaryResponse;
 import com.investnavigator.backend.analytics.model.RiskLevel;
+import com.investnavigator.backend.portfolio.dto.PortfolioPositionResponse;
+import com.investnavigator.backend.portfolio.dto.PortfolioSummaryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -67,6 +70,35 @@ public class MockAIProvider implements AIProvider {
         );
 
         return jsonParser.parse(rawResponse.rawText(), analytics);
+    }
+
+    @Override
+    public AIAnalysisResult analyzePortfolio(AIPortfolioAnalysisRequest request) {
+        PortfolioSummaryResponse portfolio = request.portfolio();
+        AIProviderPrompt prompt = promptBuilder.buildPortfolioPrompt(request);
+
+        int riskScore = calculatePortfolioRiskScore(portfolio);
+        RiskLevel riskLevel = calculateRiskLevel(riskScore);
+
+        AIProviderJsonPayload payload = new AIProviderJsonPayload(
+                buildPortfolioSummary(portfolio, riskLevel),
+                buildPortfolioPositiveFactors(portfolio),
+                buildPortfolioNegativeFactors(portfolio, riskLevel),
+                riskLevel,
+                riskScore,
+                calculatePortfolioConfidence(portfolio),
+                buildPortfolioExplanation(portfolio, prompt, riskScore, riskLevel),
+                DISCLAIMER
+        );
+
+        AIProviderRawResponse rawResponse = new AIProviderRawResponse(
+                getType(),
+                MOCK_MODEL_NAME,
+                toJson(payload),
+                Instant.now()
+        );
+
+        return jsonParser.parsePortfolio(rawResponse.rawText(), portfolio);
     }
 
     private String buildSummary(AnalyticsSummaryResponse analytics) {
@@ -196,6 +228,199 @@ public class MockAIProvider implements AIProvider {
                 analytics.riskScore(),
                 analytics.riskLevel(),
                 analytics.dataPoints()
+        );
+    }
+
+    private String buildPortfolioSummary(
+            PortfolioSummaryResponse portfolio,
+            RiskLevel riskLevel
+    ) {
+        if (portfolio.totalProfitLoss().compareTo(BigDecimal.ZERO) > 0) {
+            return "Portfolio is currently profitable with " + riskLevel + " risk based on current allocation.";
+        }
+
+        if (portfolio.totalProfitLoss().compareTo(BigDecimal.ZERO) < 0) {
+            return "Portfolio is currently in loss with " + riskLevel + " risk based on current allocation.";
+        }
+
+        return "Portfolio is close to breakeven with " + riskLevel + " risk based on current allocation.";
+    }
+
+    private List<String> buildPortfolioPositiveFactors(PortfolioSummaryResponse portfolio) {
+        List<String> factors = new ArrayList<>();
+
+        if (portfolio.positionsCount() >= 3) {
+            factors.add("Portfolio has several positions instead of depending on only one asset.");
+        }
+
+        if (portfolio.totalProfitLoss().compareTo(BigDecimal.ZERO) > 0) {
+            factors.add("Total portfolio profit/loss is currently positive.");
+        }
+
+        boolean hasStock = portfolio.positions()
+                .stream()
+                .anyMatch(position -> "STOCK".equals(position.assetType().name()));
+
+        boolean hasCrypto = portfolio.positions()
+                .stream()
+                .anyMatch(position -> "CRYPTO".equals(position.assetType().name()));
+
+        if (hasStock && hasCrypto) {
+            factors.add("Portfolio contains both stocks and crypto assets.");
+        }
+
+        if (factors.isEmpty()) {
+            factors.add("No strong positive portfolio factors were detected.");
+        }
+
+        return factors;
+    }
+
+    private List<String> buildPortfolioNegativeFactors(
+            PortfolioSummaryResponse portfolio,
+            RiskLevel riskLevel
+    ) {
+        List<String> factors = new ArrayList<>();
+
+        if (portfolio.positionsCount() <= 1) {
+            factors.add("Portfolio is highly concentrated in a single position.");
+        }
+
+        if (portfolio.totalProfitLoss().compareTo(BigDecimal.ZERO) < 0) {
+            factors.add("Total portfolio profit/loss is currently negative.");
+        }
+
+        long cryptoPositions = portfolio.positions()
+                .stream()
+                .filter(position -> "CRYPTO".equals(position.assetType().name()))
+                .count();
+
+        if (cryptoPositions == portfolio.positionsCount() && portfolio.positionsCount() > 0) {
+            factors.add("Portfolio consists only of crypto assets, which may increase volatility.");
+        }
+
+        PortfolioPositionResponse worstPosition = portfolio.positions()
+                .stream()
+                .min((first, second) -> first.profitLossPercent().compareTo(second.profitLossPercent()))
+                .orElse(null);
+
+        if (worstPosition != null && worstPosition.profitLossPercent().compareTo(BigDecimal.ZERO) < 0) {
+            factors.add("Weakest position by profit/loss percent: " + worstPosition.ticker() + ".");
+        }
+
+        if (riskLevel == RiskLevel.HIGH || riskLevel == RiskLevel.CRITICAL) {
+            factors.add("Overall portfolio risk is in the high-risk zone.");
+        }
+
+        if (factors.isEmpty()) {
+            factors.add("No major negative portfolio factors were detected.");
+        }
+
+        return factors;
+    }
+
+    private int calculatePortfolioRiskScore(PortfolioSummaryResponse portfolio) {
+        int score = 20;
+
+        if (portfolio.positionsCount() <= 1) {
+            score += 25;
+        } else if (portfolio.positionsCount() <= 2) {
+            score += 15;
+        } else if (portfolio.positionsCount() <= 4) {
+            score += 8;
+        }
+
+        if (portfolio.totalProfitLossPercent().compareTo(BigDecimal.valueOf(-20)) <= 0) {
+            score += 25;
+        } else if (portfolio.totalProfitLossPercent().compareTo(BigDecimal.valueOf(-10)) <= 0) {
+            score += 15;
+        } else if (portfolio.totalProfitLossPercent().compareTo(BigDecimal.ZERO) < 0) {
+            score += 8;
+        }
+
+        long cryptoPositions = portfolio.positions()
+                .stream()
+                .filter(position -> "CRYPTO".equals(position.assetType().name()))
+                .count();
+
+        if (cryptoPositions == portfolio.positionsCount() && portfolio.positionsCount() > 0) {
+            score += 20;
+        } else if (cryptoPositions > 0) {
+            score += 10;
+        }
+
+        return Math.min(score, 100);
+    }
+
+    private RiskLevel calculateRiskLevel(int riskScore) {
+        if (riskScore >= 80) {
+            return RiskLevel.CRITICAL;
+        }
+
+        if (riskScore >= 60) {
+            return RiskLevel.HIGH;
+        }
+
+        if (riskScore >= 35) {
+            return RiskLevel.MEDIUM;
+        }
+
+        return RiskLevel.LOW;
+    }
+
+    private BigDecimal calculatePortfolioConfidence(PortfolioSummaryResponse portfolio) {
+        BigDecimal confidence = BigDecimal.valueOf(0.55);
+
+        if (portfolio.positionsCount() >= 5) {
+            confidence = confidence.add(BigDecimal.valueOf(0.20));
+        } else if (portfolio.positionsCount() >= 3) {
+            confidence = confidence.add(BigDecimal.valueOf(0.12));
+        } else if (portfolio.positionsCount() >= 1) {
+            confidence = confidence.add(BigDecimal.valueOf(0.05));
+        }
+
+        BigDecimal maxConfidence = BigDecimal.valueOf(0.90);
+
+        if (confidence.compareTo(maxConfidence) > 0) {
+            confidence = maxConfidence;
+        }
+
+        return confidence.setScale(CONFIDENCE_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private String buildPortfolioExplanation(
+            PortfolioSummaryResponse portfolio,
+            AIProviderPrompt prompt,
+            int riskScore,
+            RiskLevel riskLevel
+    ) {
+        return """
+                The mock AI provider analyzed the current portfolio using the same prompt structure that real AI providers use.
+                
+                Prepared system prompt length: %s characters
+                Prepared user prompt length: %s characters
+                
+                Portfolio metrics:
+                - Positions count: %s
+                - Total invested: %s
+                - Total current value: %s
+                - Total profit/loss: %s
+                - Total profit/loss percent: %s%%
+                - Risk score: %s / 100
+                - Risk level: %s
+                
+                This explanation is deterministic and generated by internal business rules.
+                Later it can be replaced by a real AI provider without changing the portfolio report API.
+                """.formatted(
+                prompt.systemPrompt().length(),
+                prompt.userPrompt().length(),
+                portfolio.positionsCount(),
+                portfolio.totalInvested(),
+                portfolio.totalCurrentValue(),
+                portfolio.totalProfitLoss(),
+                portfolio.totalProfitLossPercent(),
+                riskScore,
+                riskLevel
         );
     }
 

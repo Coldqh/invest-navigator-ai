@@ -22,6 +22,7 @@ import java.util.List;
 public class MarketDataProviderHealthService {
 
     private static final String BINANCE_TEST_TICKER = "BTCUSDT";
+    private static final String MOEX_TEST_TICKER = "SBER";
 
     private final MarketDataProperties marketDataProperties;
     private final MarketDataProviderRegistry marketDataProviderRegistry;
@@ -33,8 +34,12 @@ public class MarketDataProviderHealthService {
         List<MarketDataProviderHealthItemResponse> providers = new ArrayList<>();
         providers.add(checkDemoProvider(checkedAt));
         providers.add(checkBinanceProvider(checkedAt));
-        providers.add(notConfigured(MarketDataProviderType.MOEX, "MOEX provider is not implemented yet", checkedAt));
-        providers.add(notConfigured(MarketDataProviderType.T_INVEST, "T-Invest provider is not implemented yet", checkedAt));
+        providers.add(checkMoexProvider(checkedAt));
+        providers.add(notConfigured(
+                MarketDataProviderType.T_INVEST,
+                "T-Invest provider is not implemented yet",
+                checkedAt
+        ));
 
         ProviderHealthStatus overallStatus = calculateOverallStatus(providers);
 
@@ -109,6 +114,49 @@ public class MarketDataProviderHealthService {
         }
     }
 
+    private MarketDataProviderHealthItemResponse checkMoexProvider(Instant checkedAt) {
+        try {
+            MarketDataProvider moexProvider = marketDataProviderRegistry.getProvider(
+                    MarketDataProviderType.MOEX
+            );
+
+            Asset testAsset = assetRepository.findByTickerIgnoreCase(MOEX_TEST_TICKER)
+                    .orElse(null);
+
+            if (testAsset == null) {
+                return new MarketDataProviderHealthItemResponse(
+                        MarketDataProviderType.MOEX,
+                        ProviderHealthStatus.NOT_CONFIGURED,
+                        "SBER asset not found, MOEX health check cannot be completed",
+                        checkedAt
+                );
+            }
+
+            moexProvider.getLatestMarketPrice(testAsset);
+
+            return new MarketDataProviderHealthItemResponse(
+                    MarketDataProviderType.MOEX,
+                    ProviderHealthStatus.AVAILABLE,
+                    "MOEX provider responded successfully",
+                    checkedAt
+            );
+        } catch (RestClientException exception) {
+            return new MarketDataProviderHealthItemResponse(
+                    MarketDataProviderType.MOEX,
+                    ProviderHealthStatus.UNAVAILABLE,
+                    "MOEX request failed: " + exception.getMessage(),
+                    checkedAt
+            );
+        } catch (RuntimeException exception) {
+            return new MarketDataProviderHealthItemResponse(
+                    MarketDataProviderType.MOEX,
+                    ProviderHealthStatus.UNAVAILABLE,
+                    "MOEX provider is unavailable: " + exception.getMessage(),
+                    checkedAt
+            );
+        }
+    }
+
     private MarketDataProviderHealthItemResponse notConfigured(
             MarketDataProviderType type,
             String message,
@@ -127,6 +175,7 @@ public class MarketDataProviderHealthService {
     ) {
         ProviderHealthStatus demoStatus = findStatus(providers, MarketDataProviderType.DEMO);
         ProviderHealthStatus binanceStatus = findStatus(providers, MarketDataProviderType.BINANCE);
+        ProviderHealthStatus moexStatus = findStatus(providers, MarketDataProviderType.MOEX);
 
         if (marketDataProperties.provider() == MarketDataProviderType.DEMO) {
             return demoStatus;
@@ -136,17 +185,21 @@ public class MarketDataProviderHealthService {
             return binanceStatus;
         }
 
+        if (marketDataProperties.provider() == MarketDataProviderType.MOEX) {
+            return moexStatus;
+        }
+
         if (marketDataProperties.provider() == MarketDataProviderType.HYBRID) {
-            if (demoStatus == ProviderHealthStatus.AVAILABLE
-                    && binanceStatus == ProviderHealthStatus.AVAILABLE) {
+            if (demoStatus != ProviderHealthStatus.AVAILABLE) {
+                return ProviderHealthStatus.UNAVAILABLE;
+            }
+
+            if (binanceStatus == ProviderHealthStatus.AVAILABLE
+                    && moexStatus == ProviderHealthStatus.AVAILABLE) {
                 return ProviderHealthStatus.AVAILABLE;
             }
 
-            if (demoStatus == ProviderHealthStatus.AVAILABLE) {
-                return ProviderHealthStatus.DEGRADED;
-            }
-
-            return ProviderHealthStatus.UNAVAILABLE;
+            return ProviderHealthStatus.DEGRADED;
         }
 
         return ProviderHealthStatus.NOT_CONFIGURED;

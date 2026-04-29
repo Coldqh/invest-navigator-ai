@@ -21,6 +21,7 @@ public record AIProperties(
                     "https://llm.api.cloud.yandex.net/v1",
                     "",
                     "",
+                    "",
                     30
             );
         }
@@ -29,6 +30,7 @@ public record AIProperties(
             gigaChat = new ExternalProvider(
                     false,
                     "https://gigachat.devices.sberbank.ru/api/v1",
+                    "",
                     "",
                     "",
                     30
@@ -41,6 +43,7 @@ public record AIProperties(
                     "https://api.openai.com/v1",
                     "",
                     "",
+                    "",
                     30
             );
         }
@@ -51,6 +54,7 @@ public record AIProperties(
             String baseUrl,
             String apiKey,
             String model,
+            String folderId,
             int timeoutSeconds
     ) {
         public ExternalProvider {
@@ -66,6 +70,10 @@ public record AIProperties(
                 model = "";
             }
 
+            if (folderId == null) {
+                folderId = "";
+            }
+
             if (timeoutSeconds <= 0) {
                 timeoutSeconds = 30;
             }
@@ -77,6 +85,10 @@ public record AIProperties(
 
         public boolean hasModel() {
             return model != null && !model.isBlank();
+        }
+
+        public boolean hasFolderId() {
+            return folderId != null && !folderId.isBlank();
         }
 
         public boolean isReady() {

@@ -44,27 +44,72 @@ public class MarketDataRefreshService {
         Asset asset = assetRepository.findByTickerIgnoreCase(ticker)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found: " + ticker));
 
-        if (marketDataProperties.provider() == MarketDataProviderType.HYBRID
-                && asset.getAssetType() == AssetType.CRYPTO) {
-            return refreshCryptoPriceWithFallback(asset);
+        MarketDataProviderType activeProvider = marketDataProperties.provider();
+
+        if (activeProvider == MarketDataProviderType.HYBRID) {
+            return refreshHybridPrice(asset);
         }
 
-        if (marketDataProperties.provider() != MarketDataProviderType.DEMO
-                && marketDataProperties.provider() != MarketDataProviderType.HYBRID) {
-            throw new BadRequestException(
-                    "Manual refresh is currently available only for DEMO or HYBRID market data provider"
+        if (activeProvider == MarketDataProviderType.BINANCE) {
+            validateAssetType(asset, AssetType.CRYPTO, "BINANCE refresh supports only crypto assets");
+
+            return refreshExternalPriceWithFallback(
+                    asset,
+                    MarketDataProviderType.BINANCE,
+                    "BINANCE_REFRESH"
+            );
+        }
+
+        if (activeProvider == MarketDataProviderType.MOEX) {
+            validateAssetType(asset, AssetType.STOCK, "MOEX refresh supports only stock assets");
+
+            return refreshExternalPriceWithFallback(
+                    asset,
+                    MarketDataProviderType.MOEX,
+                    "MOEX_REFRESH"
+            );
+        }
+
+        if (activeProvider == MarketDataProviderType.DEMO) {
+            return refreshDemoPrice(asset);
+        }
+
+        throw new BadRequestException(
+                "Manual refresh is not available for market data provider: " + activeProvider
+        );
+    }
+
+    private MarketPriceResponse refreshHybridPrice(Asset asset) {
+        if (asset.getAssetType() == AssetType.CRYPTO) {
+            return refreshExternalPriceWithFallback(
+                    asset,
+                    MarketDataProviderType.BINANCE,
+                    "BINANCE_REFRESH"
+            );
+        }
+
+        if (asset.getAssetType() == AssetType.STOCK) {
+            return refreshExternalPriceWithFallback(
+                    asset,
+                    MarketDataProviderType.MOEX,
+                    "MOEX_REFRESH"
             );
         }
 
         return refreshDemoPrice(asset);
     }
 
-    private MarketPriceResponse refreshCryptoPriceWithFallback(Asset asset) {
+    private MarketPriceResponse refreshExternalPriceWithFallback(
+            Asset asset,
+            MarketDataProviderType providerType,
+            String refreshSource
+    ) {
         try {
-            return refreshCryptoPriceFromBinance(asset);
+            return refreshExternalPrice(asset, providerType, refreshSource);
         } catch (RestClientException exception) {
             log.warn(
-                    "Binance refresh request failed for {}. Falling back to DEMO refresh. Reason: {}",
+                    "{} refresh request failed for {}. Falling back to DEMO refresh. Reason: {}",
+                    providerType,
                     asset.getTicker(),
                     exception.getMessage()
             );
@@ -72,7 +117,8 @@ public class MarketDataRefreshService {
             return refreshDemoPrice(asset);
         } catch (RuntimeException exception) {
             log.warn(
-                    "Binance refresh failed for {}. Falling back to DEMO refresh. Reason: {}",
+                    "{} refresh failed for {}. Falling back to DEMO refresh. Reason: {}",
+                    providerType,
                     asset.getTicker(),
                     exception.getMessage()
             );
@@ -81,18 +127,20 @@ public class MarketDataRefreshService {
         }
     }
 
-    private MarketPriceResponse refreshCryptoPriceFromBinance(Asset asset) {
-        MarketDataProvider binanceProvider = marketDataProviderRegistry.getProvider(
-                MarketDataProviderType.BINANCE
-        );
+    private MarketPriceResponse refreshExternalPrice(
+            Asset asset,
+            MarketDataProviderType providerType,
+            String refreshSource
+    ) {
+        MarketDataProvider provider = marketDataProviderRegistry.getProvider(providerType);
 
-        MarketPriceResponse livePrice = binanceProvider.getLatestMarketPrice(asset);
+        MarketPriceResponse livePrice = provider.getLatestMarketPrice(asset);
 
         MarketPrice refreshedMarketPrice = MarketPrice.builder()
                 .asset(asset)
                 .price(livePrice.price())
                 .volume(livePrice.volume())
-                .source("BINANCE_REFRESH")
+                .source(refreshSource)
                 .timestamp(livePrice.timestamp())
                 .build();
 
@@ -142,5 +190,15 @@ public class MarketDataRefreshService {
         return value
                 .multiply(BigDecimal.ONE.add(BigDecimal.valueOf(randomPercent)))
                 .setScale(SCALE, RoundingMode.HALF_UP);
+    }
+
+    private void validateAssetType(
+            Asset asset,
+            AssetType expectedType,
+            String message
+    ) {
+        if (asset.getAssetType() != expectedType) {
+            throw new BadRequestException(message);
+        }
     }
 }

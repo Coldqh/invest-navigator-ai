@@ -2,6 +2,11 @@ server:
   port: 8080
 
 spring:
+  config:
+    import:
+      - optional:file:./local-secrets.yaml
+      - optional:file:./backend/local-secrets.yaml
+
   application:
     name: invest-navigator-backend
 
@@ -27,6 +32,8 @@ market-data:
   provider: HYBRID
   binance:
     base-url: https://api.binance.com
+  moex:
+    base-url: https://iss.moex.com
 
 ai:
   provider: MOCK
@@ -34,20 +41,23 @@ ai:
   yandex-gpt:
     enabled: false
     base-url: https://llm.api.cloud.yandex.net/v1
-    api-key: ${YANDEX_GPT_API_KEY:}
-    model: ${YANDEX_GPT_MODEL:}
+    api-key: ""
+    model: ""
+    folder-id: ""
     timeout-seconds: 30
 
   giga-chat:
     enabled: false
     base-url: https://gigachat.devices.sberbank.ru/api/v1
-    api-key: ${GIGA_CHAT_API_KEY:}
-    model: ${GIGA_CHAT_MODEL:}
+    api-key: ""
+    model: ""
+    folder-id: ""
     timeout-seconds: 30
 
   open-ai:
     enabled: false
     base-url: https://api.openai.com/v1
-    api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:}
+    api-key: ""
+    model: ""
+    folder-id: ""
     timeout-seconds: 30

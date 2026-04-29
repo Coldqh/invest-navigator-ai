@@ -110,6 +110,15 @@ public class AIProviderHealthService {
         try {
             aiProviderRegistry.getProvider(type);
 
+            if (type == AIProviderType.YANDEX_GPT && !properties.hasFolderId()) {
+                return new AIProviderHealthItemResponse(
+                        type,
+                        AIProviderHealthStatus.DEGRADED,
+                        displayName + " provider is enabled. API key and model are configured, but folder-id is empty. Request may still work if folder id is included inside model URI.",
+                        checkedAt
+                );
+            }
+
             return new AIProviderHealthItemResponse(
                     type,
                     AIProviderHealthStatus.AVAILABLE,

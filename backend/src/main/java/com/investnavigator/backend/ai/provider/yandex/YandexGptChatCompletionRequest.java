@@ -16,6 +16,9 @@ public record YandexGptChatCompletionRequest(
         BigDecimal temperature,
 
         @JsonProperty("max_tokens")
-        int maxTokens
+        int maxTokens,
+
+        @JsonProperty("stream")
+        boolean stream
 ) {
 }

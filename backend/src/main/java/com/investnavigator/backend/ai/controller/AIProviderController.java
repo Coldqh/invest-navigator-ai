@@ -3,10 +3,8 @@ package com.investnavigator.backend.ai.controller;
 import com.investnavigator.backend.ai.config.AIProperties;
 import com.investnavigator.backend.ai.dto.AIProviderConfigurationResponse;
 import com.investnavigator.backend.ai.dto.AIProviderHealthResponse;
-import com.investnavigator.backend.ai.dto.AIProviderHealthStatus;
 import com.investnavigator.backend.ai.provider.AIProvider;
 import com.investnavigator.backend.ai.provider.AIProviderRegistry;
-import com.investnavigator.backend.ai.provider.AIProviderType;
 import com.investnavigator.backend.ai.service.AIProviderHealthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -56,6 +54,7 @@ public class AIProviderController {
                 properties.baseUrl(),
                 properties.hasApiKey(),
                 properties.hasModel(),
+                properties.hasFolderId(),
                 properties.model(),
                 properties.timeoutSeconds()
         );

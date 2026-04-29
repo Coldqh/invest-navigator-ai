@@ -13,6 +13,7 @@ public record AIProviderConfigurationResponse(
             String baseUrl,
             boolean apiKeyConfigured,
             boolean modelConfigured,
+            boolean folderIdConfigured,
             String model,
             int timeoutSeconds
     ) {
