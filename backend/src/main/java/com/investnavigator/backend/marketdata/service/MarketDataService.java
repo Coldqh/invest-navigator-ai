@@ -2,16 +2,16 @@ package com.investnavigator.backend.marketdata.service;
 
 import com.investnavigator.backend.asset.model.Asset;
 import com.investnavigator.backend.asset.repository.AssetRepository;
+import com.investnavigator.backend.common.error.ResourceNotFoundException;
+import com.investnavigator.backend.marketdata.config.MarketDataProperties;
 import com.investnavigator.backend.marketdata.dto.CandleResponse;
 import com.investnavigator.backend.marketdata.dto.MarketPriceResponse;
-import com.investnavigator.backend.marketdata.mapper.MarketDataMapper;
 import com.investnavigator.backend.marketdata.model.Timeframe;
-import com.investnavigator.backend.marketdata.repository.CandleRepository;
-import com.investnavigator.backend.marketdata.repository.MarketPriceRepository;
+import com.investnavigator.backend.marketdata.provider.MarketDataProvider;
+import com.investnavigator.backend.marketdata.provider.MarketDataProviderRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.investnavigator.backend.common.error.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -21,25 +21,25 @@ import java.util.List;
 public class MarketDataService {
 
     private final AssetRepository assetRepository;
-    private final MarketPriceRepository marketPriceRepository;
-    private final CandleRepository candleRepository;
-    private final MarketDataMapper marketDataMapper;
+    private final MarketDataProperties marketDataProperties;
+    private final MarketDataProviderRegistry marketDataProviderRegistry;
 
     public MarketPriceResponse getLatestMarketPrice(String ticker) {
         Asset asset = findAssetByTicker(ticker);
+        MarketDataProvider provider = getActiveProvider();
 
-        return marketPriceRepository.findTopByAssetOrderByTimestampDesc(asset)
-                .map(marketDataMapper::toMarketPriceResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Market price not found for asset: " + ticker));
+        return provider.getLatestMarketPrice(asset);
     }
 
     public List<CandleResponse> getCandles(String ticker, Timeframe timeframe) {
         Asset asset = findAssetByTicker(ticker);
+        MarketDataProvider provider = getActiveProvider();
 
-        return candleRepository.findByAssetAndTimeframeOrderByTimestampAsc(asset, timeframe)
-                .stream()
-                .map(marketDataMapper::toCandleResponse)
-                .toList();
+        return provider.getCandles(asset, timeframe);
+    }
+
+    private MarketDataProvider getActiveProvider() {
+        return marketDataProviderRegistry.getProvider(marketDataProperties.provider());
     }
 
     private Asset findAssetByTicker(String ticker) {
