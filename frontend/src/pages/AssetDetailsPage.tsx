@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { backendClient } from "../api/backendClient";
 import { LoadingBlock } from "../components/LoadingBlock";
+import { MiniLineChart } from "../components/MiniLineChart";
 import type {
     AIReportResponse,
     AnalyticsSummaryResponse,
@@ -156,6 +157,8 @@ export function AssetDetailsPage() {
                     <p>Score: {analytics?.riskScore ?? "—"} / 100</p>
                 </article>
             </div>
+
+            <MiniLineChart candles={candles} />
 
             <div className="content-grid">
                 <article className="panel">
