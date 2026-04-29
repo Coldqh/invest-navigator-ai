@@ -24,9 +24,24 @@ public class AIProviderHealthService {
 
         List<AIProviderHealthItemResponse> providers = List.of(
                 checkMockProvider(checkedAt),
-                notConfigured(AIProviderType.YANDEX_GPT, "YandexGPT provider is not implemented yet", checkedAt),
-                notConfigured(AIProviderType.GIGA_CHAT, "GigaChat provider is not implemented yet", checkedAt),
-                notConfigured(AIProviderType.OPENAI, "OpenAI provider is not implemented yet", checkedAt)
+                checkExternalProvider(
+                        AIProviderType.YANDEX_GPT,
+                        "YandexGPT",
+                        aiProperties.yandexGpt(),
+                        checkedAt
+                ),
+                checkExternalProvider(
+                        AIProviderType.GIGA_CHAT,
+                        "GigaChat",
+                        aiProperties.gigaChat(),
+                        checkedAt
+                ),
+                checkExternalProvider(
+                        AIProviderType.OPENAI,
+                        "OpenAI",
+                        aiProperties.openAi(),
+                        checkedAt
+                )
         );
 
         AIProviderHealthStatus overallStatus = calculateOverallStatus(providers);
@@ -59,17 +74,56 @@ public class AIProviderHealthService {
         }
     }
 
-    private AIProviderHealthItemResponse notConfigured(
+    private AIProviderHealthItemResponse checkExternalProvider(
             AIProviderType type,
-            String message,
+            String displayName,
+            AIProperties.ExternalProvider properties,
             Instant checkedAt
     ) {
-        return new AIProviderHealthItemResponse(
-                type,
-                AIProviderHealthStatus.NOT_CONFIGURED,
-                message,
-                checkedAt
-        );
+        if (!properties.enabled()) {
+            return new AIProviderHealthItemResponse(
+                    type,
+                    AIProviderHealthStatus.NOT_CONFIGURED,
+                    displayName + " provider is disabled in application config",
+                    checkedAt
+            );
+        }
+
+        if (!properties.hasApiKey()) {
+            return new AIProviderHealthItemResponse(
+                    type,
+                    AIProviderHealthStatus.NOT_CONFIGURED,
+                    displayName + " provider is enabled, but api-key is empty",
+                    checkedAt
+            );
+        }
+
+        if (!properties.hasModel()) {
+            return new AIProviderHealthItemResponse(
+                    type,
+                    AIProviderHealthStatus.NOT_CONFIGURED,
+                    displayName + " provider is enabled, but model is empty",
+                    checkedAt
+            );
+        }
+
+        try {
+            aiProviderRegistry.getProvider(type);
+
+            return new AIProviderHealthItemResponse(
+                    type,
+                    AIProviderHealthStatus.AVAILABLE,
+                    displayName + " provider is configured and available",
+                    checkedAt
+            );
+        } catch (RuntimeException exception) {
+            return new AIProviderHealthItemResponse(
+                    type,
+                    AIProviderHealthStatus.DEGRADED,
+                    displayName + " provider config is ready, but implementation is missing: " + exception.getMessage(),
+                    checkedAt
+            );
+        }
     }
 
     private AIProviderHealthStatus calculateOverallStatus(

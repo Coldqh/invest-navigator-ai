@@ -1,6 +1,7 @@
 package com.investnavigator.backend.ai.controller;
 
 import com.investnavigator.backend.ai.config.AIProperties;
+import com.investnavigator.backend.ai.dto.AIProviderConfigurationResponse;
 import com.investnavigator.backend.ai.dto.AIProviderHealthResponse;
 import com.investnavigator.backend.ai.provider.AIProvider;
 import com.investnavigator.backend.ai.provider.AIProviderRegistry;
@@ -32,5 +33,28 @@ public class AIProviderController {
     @GetMapping("/health")
     public AIProviderHealthResponse getProviderHealth() {
         return aiProviderHealthService.getHealth();
+    }
+
+    @GetMapping("/configuration")
+    public AIProviderConfigurationResponse getProviderConfiguration() {
+        return new AIProviderConfigurationResponse(
+                aiProperties.provider(),
+                toExternalProviderConfiguration(aiProperties.yandexGpt()),
+                toExternalProviderConfiguration(aiProperties.gigaChat()),
+                toExternalProviderConfiguration(aiProperties.openAi())
+        );
+    }
+
+    private AIProviderConfigurationResponse.ExternalProviderConfiguration toExternalProviderConfiguration(
+            AIProperties.ExternalProvider properties
+    ) {
+        return new AIProviderConfigurationResponse.ExternalProviderConfiguration(
+                properties.enabled(),
+                properties.baseUrl(),
+                properties.hasApiKey(),
+                properties.hasModel(),
+                properties.model(),
+                properties.timeoutSeconds()
+        );
     }
 }

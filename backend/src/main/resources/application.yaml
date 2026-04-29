@@ -30,3 +30,24 @@ market-data:
 
 ai:
   provider: MOCK
+
+  yandex-gpt:
+    enabled: false
+    base-url: https://llm.api.cloud.yandex.net/v1
+    api-key: ""
+    model: ""
+    timeout-seconds: 30
+
+  giga-chat:
+    enabled: false
+    base-url: https://gigachat.devices.sberbank.ru/api/v1
+    api-key: ""
+    model: ""
+    timeout-seconds: 30
+
+  open-ai:
+    enabled: false
+    base-url: https://api.openai.com/v1
+    api-key: ""
+    model: ""
+    timeout-seconds: 30
