@@ -27,3 +27,6 @@ market-data:
   provider: HYBRID
   binance:
     base-url: https://api.binance.com
+
+ai:
+  provider: MOCK
