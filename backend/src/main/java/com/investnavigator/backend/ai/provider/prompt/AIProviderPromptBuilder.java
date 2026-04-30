@@ -1,8 +1,12 @@
 package com.investnavigator.backend.ai.provider.prompt;
 
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisRequest;
+import com.investnavigator.backend.ai.provider.dto.AICompareAnalysisRequest;
+import com.investnavigator.backend.ai.provider.dto.AICompareAssetSnapshot;
 import com.investnavigator.backend.ai.provider.dto.AIPortfolioAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIProviderPrompt;
+import com.investnavigator.backend.ai.provider.dto.AIWatchlistAnalysisRequest;
+import com.investnavigator.backend.ai.provider.dto.AIWatchlistItemSnapshot;
 import com.investnavigator.backend.analytics.dto.AnalyticsSummaryResponse;
 import com.investnavigator.backend.portfolio.dto.PortfolioPositionResponse;
 import com.investnavigator.backend.portfolio.dto.PortfolioSummaryResponse;
@@ -24,6 +28,20 @@ public class AIProviderPromptBuilder {
         return new AIProviderPrompt(
                 buildSystemPrompt(),
                 buildPortfolioUserPrompt(request)
+        );
+    }
+
+    public AIProviderPrompt buildWatchlistPrompt(AIWatchlistAnalysisRequest request) {
+        return new AIProviderPrompt(
+                buildSystemPrompt(),
+                buildWatchlistUserPrompt(request)
+        );
+    }
+
+    public AIProviderPrompt buildComparePrompt(AICompareAnalysisRequest request) {
+        return new AIProviderPrompt(
+                buildSystemPrompt(),
+                buildCompareUserPrompt(request)
         );
     }
 
@@ -142,6 +160,70 @@ public class AIProviderPromptBuilder {
         );
     }
 
+    private String buildWatchlistUserPrompt(AIWatchlistAnalysisRequest request) {
+        String itemsText = request.items()
+                .stream()
+                .map(this::formatWatchlistItem)
+                .collect(Collectors.joining("\n"));
+
+        return """
+                Analyze this watchlist using the provided market data.
+                
+                Watchlist:
+                - Items count: %s
+                - Generated at: %s
+                
+                Watchlist items:
+                %s
+                
+                Focus on:
+                - assets that look risky;
+                - assets that look relatively stable;
+                - balance between crypto and stocks;
+                - data source quality;
+                - what deserves closer monitoring.
+                
+                Return only JSON matching the required object.
+                """.formatted(
+                request.items().size(),
+                request.generatedAt(),
+                itemsText
+        );
+    }
+
+    private String buildCompareUserPrompt(AICompareAnalysisRequest request) {
+        String assetsText = request.assets()
+                .stream()
+                .map(this::formatCompareAsset)
+                .collect(Collectors.joining("\n"));
+
+        return """
+                Compare these assets using the provided analytics metrics.
+                
+                Compare request:
+                - Assets count: %s
+                - Generated at: %s
+                
+                Assets:
+                %s
+                
+                Focus on:
+                - which asset looks more volatile;
+                - which asset has stronger price movement;
+                - which asset has better risk profile;
+                - whether one asset looks more speculative;
+                - data quality and sample size;
+                - clear explanation for a beginner investor.
+                
+                Do not tell the user to buy or sell.
+                Return only JSON matching the required object.
+                """.formatted(
+                request.assets().size(),
+                request.generatedAt(),
+                assetsText
+        );
+    }
+
     private String formatPortfolioPosition(PortfolioPositionResponse position) {
         return """
                 - %s:
@@ -171,6 +253,62 @@ public class AIProviderPromptBuilder {
                 position.profitLoss(),
                 position.profitLossPercent(),
                 position.priceSource()
+        );
+    }
+
+    private String formatWatchlistItem(AIWatchlistItemSnapshot item) {
+        return """
+                - %s:
+                  name: %s
+                  type: %s
+                  exchange: %s
+                  currency: %s
+                  latest price: %s
+                  latest volume: %s
+                  price source: %s
+                  price timestamp: %s
+                  data error: %s
+                """.formatted(
+                item.ticker(),
+                item.name(),
+                item.assetType(),
+                item.exchange(),
+                item.currency(),
+                item.latestPrice(),
+                item.latestVolume(),
+                item.priceSource(),
+                item.priceTimestamp(),
+                item.dataError()
+        );
+    }
+
+    private String formatCompareAsset(AICompareAssetSnapshot asset) {
+        return """
+                - %s:
+                  name: %s
+                  current price: %s
+                  first close: %s
+                  last close: %s
+                  price change: %s
+                  price change percent: %s%%
+                  average volume: %s
+                  volatility percent: %s%%
+                  risk score: %s / 100
+                  risk level: %s
+                  data points: %s
+                """.formatted(
+                asset.ticker(),
+                asset.name(),
+                asset.currentPrice(),
+                asset.firstClose(),
+                asset.lastClose(),
+                asset.priceChange(),
+                asset.priceChangePercent(),
+                asset.averageVolume(),
+                asset.volatilityPercent(),
+                asset.riskScore(),
+                asset.riskLevel(),
+                asset.dataPoints()
         );
     }
 }

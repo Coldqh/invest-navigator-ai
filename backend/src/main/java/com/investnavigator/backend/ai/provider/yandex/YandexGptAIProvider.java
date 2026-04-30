@@ -5,9 +5,11 @@ import com.investnavigator.backend.ai.provider.AIProvider;
 import com.investnavigator.backend.ai.provider.AIProviderType;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisResult;
+import com.investnavigator.backend.ai.provider.dto.AICompareAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIPortfolioAnalysisRequest;
 import com.investnavigator.backend.ai.provider.dto.AIProviderPrompt;
 import com.investnavigator.backend.ai.provider.dto.AIProviderRawResponse;
+import com.investnavigator.backend.ai.provider.dto.AIWatchlistAnalysisRequest;
 import com.investnavigator.backend.ai.provider.parser.AIProviderJsonParser;
 import com.investnavigator.backend.ai.provider.prompt.AIProviderPromptBuilder;
 import com.investnavigator.backend.common.error.BadRequestException;
@@ -84,6 +86,36 @@ public class YandexGptAIProvider implements AIProvider {
         );
 
         return jsonParser.parsePortfolio(rawResponse.rawText(), request.portfolio());
+    }
+
+    @Override
+    public AIAnalysisResult analyzeWatchlist(AIWatchlistAnalysisRequest request) {
+        AIProviderPrompt prompt = promptBuilder.buildWatchlistPrompt(request);
+        String rawText = sendPrompt(prompt);
+
+        AIProviderRawResponse rawResponse = new AIProviderRawResponse(
+                getType(),
+                aiProperties.yandexGpt().model(),
+                rawText,
+                Instant.now()
+        );
+
+        return jsonParser.parseWatchlist(rawResponse.rawText(), request);
+    }
+
+    @Override
+    public AIAnalysisResult analyzeCompare(AICompareAnalysisRequest request) {
+        AIProviderPrompt prompt = promptBuilder.buildComparePrompt(request);
+        String rawText = sendPrompt(prompt);
+
+        AIProviderRawResponse rawResponse = new AIProviderRawResponse(
+                getType(),
+                aiProperties.yandexGpt().model(),
+                rawText,
+                Instant.now()
+        );
+
+        return jsonParser.parseCompare(rawResponse.rawText(), request);
     }
 
     private String sendPrompt(AIProviderPrompt prompt) {

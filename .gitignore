@@ -34,3 +34,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+# Local secrets
+backend/local-secrets.yaml
+local-secrets.yaml

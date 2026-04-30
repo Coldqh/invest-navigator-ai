@@ -3,7 +3,10 @@ package com.investnavigator.backend.ai.provider.parser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.investnavigator.backend.ai.provider.dto.AIAnalysisResult;
+import com.investnavigator.backend.ai.provider.dto.AICompareAnalysisRequest;
+import com.investnavigator.backend.ai.provider.dto.AICompareAssetSnapshot;
 import com.investnavigator.backend.ai.provider.dto.AIProviderJsonPayload;
+import com.investnavigator.backend.ai.provider.dto.AIWatchlistAnalysisRequest;
 import com.investnavigator.backend.analytics.dto.AnalyticsSummaryResponse;
 import com.investnavigator.backend.analytics.model.RiskLevel;
 import com.investnavigator.backend.portfolio.dto.PortfolioSummaryResponse;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -58,6 +62,48 @@ public class AIProviderJsonParser {
                 payload.riskScore() == null ? fallbackRiskScore : clampRiskScore(payload.riskScore()),
                 safeConfidence(payload.confidence()),
                 safeString(payload.explanation(), buildPortfolioFallbackExplanation(fallbackPortfolio, fallbackRiskScore, fallbackRiskLevel)),
+                safeString(payload.disclaimer(), DEFAULT_DISCLAIMER)
+        );
+    }
+
+    public AIAnalysisResult parseWatchlist(
+            String rawText,
+            AIWatchlistAnalysisRequest fallbackWatchlist
+    ) {
+        AIProviderJsonPayload payload = parsePayload(rawText);
+
+        int fallbackRiskScore = calculateWatchlistFallbackRiskScore(fallbackWatchlist);
+        RiskLevel fallbackRiskLevel = calculateRiskLevel(fallbackRiskScore);
+
+        return new AIAnalysisResult(
+                safeString(payload.summary(), buildWatchlistFallbackSummary(fallbackWatchlist)),
+                safeList(payload.positiveFactors(), "No positive watchlist factors were provided by the AI provider."),
+                safeList(payload.negativeFactors(), "No negative watchlist factors were provided by the AI provider."),
+                payload.riskLevel() == null ? fallbackRiskLevel : payload.riskLevel(),
+                payload.riskScore() == null ? fallbackRiskScore : clampRiskScore(payload.riskScore()),
+                safeConfidence(payload.confidence()),
+                safeString(payload.explanation(), buildWatchlistFallbackExplanation(fallbackWatchlist, fallbackRiskScore, fallbackRiskLevel)),
+                safeString(payload.disclaimer(), DEFAULT_DISCLAIMER)
+        );
+    }
+
+    public AIAnalysisResult parseCompare(
+            String rawText,
+            AICompareAnalysisRequest fallbackCompare
+    ) {
+        AIProviderJsonPayload payload = parsePayload(rawText);
+
+        int fallbackRiskScore = calculateCompareFallbackRiskScore(fallbackCompare);
+        RiskLevel fallbackRiskLevel = calculateRiskLevel(fallbackRiskScore);
+
+        return new AIAnalysisResult(
+                safeString(payload.summary(), buildCompareFallbackSummary(fallbackCompare)),
+                safeList(payload.positiveFactors(), "No positive comparison factors were provided by the AI provider."),
+                safeList(payload.negativeFactors(), "No negative comparison factors were provided by the AI provider."),
+                payload.riskLevel() == null ? fallbackRiskLevel : payload.riskLevel(),
+                payload.riskScore() == null ? fallbackRiskScore : clampRiskScore(payload.riskScore()),
+                safeConfidence(payload.confidence()),
+                safeString(payload.explanation(), buildCompareFallbackExplanation(fallbackCompare, fallbackRiskScore, fallbackRiskLevel)),
                 safeString(payload.disclaimer(), DEFAULT_DISCLAIMER)
         );
     }
@@ -190,6 +236,94 @@ public class AIProviderJsonParser {
         );
     }
 
+    private String buildWatchlistFallbackSummary(AIWatchlistAnalysisRequest watchlist) {
+        return "Watchlist was analyzed using available market data.";
+    }
+
+    private String buildWatchlistFallbackExplanation(
+            AIWatchlistAnalysisRequest watchlist,
+            int riskScore,
+            RiskLevel riskLevel
+    ) {
+        long cryptoItems = watchlist.items()
+                .stream()
+                .filter(item -> "CRYPTO".equals(item.assetType().name()))
+                .count();
+
+        long stockItems = watchlist.items()
+                .stream()
+                .filter(item -> "STOCK".equals(item.assetType().name()))
+                .count();
+
+        long itemsWithErrors = watchlist.items()
+                .stream()
+                .filter(item -> item.dataError() != null && !item.dataError().isBlank())
+                .count();
+
+        return """
+                Fallback watchlist explanation generated because the AI provider response did not include a valid explanation.
+                
+                Items count: %s
+                Stock items: %s
+                Crypto items: %s
+                Items with data errors: %s
+                Risk score: %s / 100
+                Risk level: %s
+                """.formatted(
+                watchlist.items().size(),
+                stockItems,
+                cryptoItems,
+                itemsWithErrors,
+                riskScore,
+                riskLevel
+        );
+    }
+
+    private String buildCompareFallbackSummary(AICompareAnalysisRequest compare) {
+        String tickers = compare.assets()
+                .stream()
+                .map(AICompareAssetSnapshot::ticker)
+                .reduce((first, second) -> first + " vs " + second)
+                .orElse("assets");
+
+        return "Comparison report was generated using available analytics metrics for " + tickers + ".";
+    }
+
+    private String buildCompareFallbackExplanation(
+            AICompareAnalysisRequest compare,
+            int riskScore,
+            RiskLevel riskLevel
+    ) {
+        AICompareAssetSnapshot riskiestAsset = compare.assets()
+                .stream()
+                .max(Comparator.comparingInt(AICompareAssetSnapshot::riskScore))
+                .orElse(null);
+
+        AICompareAssetSnapshot mostVolatileAsset = compare.assets()
+                .stream()
+                .max(Comparator.comparing(AICompareAssetSnapshot::volatilityPercent))
+                .orElse(null);
+
+        String riskiestTicker = riskiestAsset == null ? "n/a" : riskiestAsset.ticker();
+        String volatileTicker = mostVolatileAsset == null ? "n/a" : mostVolatileAsset.ticker();
+
+        return """
+                Fallback comparison explanation generated because the AI provider response did not include a valid explanation.
+                
+                Assets count: %s
+                Riskiest asset by risk score: %s
+                Most volatile asset: %s
+                Comparison risk score: %s / 100
+                Comparison risk level: %s
+                """.formatted(
+                compare.assets().size(),
+                riskiestTicker,
+                volatileTicker,
+                riskScore,
+                riskLevel
+        );
+    }
+
     private int calculatePortfolioFallbackRiskScore(PortfolioSummaryResponse portfolio) {
         int score = 20;
 
@@ -221,6 +355,52 @@ public class AIProviderJsonParser {
         }
 
         return clampRiskScore(score);
+    }
+
+    private int calculateWatchlistFallbackRiskScore(AIWatchlistAnalysisRequest watchlist) {
+        int score = 20;
+
+        if (watchlist.items().size() <= 1) {
+            score += 20;
+        } else if (watchlist.items().size() <= 2) {
+            score += 12;
+        }
+
+        long cryptoItems = watchlist.items()
+                .stream()
+                .filter(item -> "CRYPTO".equals(item.assetType().name()))
+                .count();
+
+        if (cryptoItems == watchlist.items().size() && !watchlist.items().isEmpty()) {
+            score += 20;
+        } else if (cryptoItems > 0) {
+            score += 10;
+        }
+
+        long itemsWithErrors = watchlist.items()
+                .stream()
+                .filter(item -> item.dataError() != null && !item.dataError().isBlank())
+                .count();
+
+        score += (int) Math.min(itemsWithErrors * 8, 24);
+
+        return clampRiskScore(score);
+    }
+
+    private int calculateCompareFallbackRiskScore(AICompareAnalysisRequest compare) {
+        int maxRiskScore = compare.assets()
+                .stream()
+                .mapToInt(AICompareAssetSnapshot::riskScore)
+                .max()
+                .orElse(20);
+
+        int lowDataPenalty = compare.assets()
+                .stream()
+                .anyMatch(asset -> asset.dataPoints() < 5)
+                ? 10
+                : 0;
+
+        return clampRiskScore(maxRiskScore + lowDataPenalty);
     }
 
     private RiskLevel calculateRiskLevel(int riskScore) {
