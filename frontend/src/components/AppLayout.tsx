@@ -4,14 +4,6 @@ export function AppLayout() {
     return (
         <div className="app-shell">
             <header className="app-header">
-                <NavLink to="/" className="brand">
-                    <span className="brand-mark">IN</span>
-                    <div>
-                        <strong>Invest Navigator AI</strong>
-                        <small>Market analytics platform</small>
-                    </div>
-                </NavLink>
-
                 <nav className="nav">
                     <NavLink to="/" end>
                         Дашборд
@@ -23,7 +15,7 @@ export function AppLayout() {
                         Сравнение
                     </NavLink>
                     <NavLink to="/watchlist">
-                        Watchlist
+                        Избранное
                     </NavLink>
                     <NavLink to="/portfolio">
                         Портфель

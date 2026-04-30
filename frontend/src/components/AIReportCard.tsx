@@ -5,23 +5,23 @@ type AIReportCardProps = {
 };
 
 export function AIReportCard({ report }: AIReportCardProps) {
-    const createdAt = new Date(report.createdAt).toLocaleString("ru-RU");
+    const createdAt = formatReportDate(report.createdAt);
 
     return (
         <article className="ai-report-card">
             <div className="ai-report-top">
                 <div>
-                    <p className="eyebrow">AI report</p>
+                    <p className="eyebrow">AI-отчёт</p>
                     <h3>{report.ticker}</h3>
                     <span>{createdAt}</span>
                 </div>
 
                 <div className="ai-report-score">
-          <span className={`risk risk-${report.riskLevel.toLowerCase()}`}>
-            {report.riskLevel}
-          </span>
+                    <span className={`risk risk-${report.riskLevel.toLowerCase()}`}>
+                        {report.riskLevel}
+                    </span>
                     <strong>{report.riskScore}/100</strong>
-                    <small>risk score</small>
+                    <small>риск-скор</small>
                 </div>
             </div>
 
@@ -79,4 +79,18 @@ export function AIReportCard({ report }: AIReportCardProps) {
             </details>
         </article>
     );
+}
+
+function formatReportDate(value: string | null | undefined): string {
+    if (!value) {
+        return "—";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
+        return "—";
+    }
+
+    return date.toLocaleString("ru-RU");
 }

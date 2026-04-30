@@ -19,13 +19,6 @@ type DashboardAsset = {
     analytics: AnalyticsSummaryResponse | null;
 };
 
-const riskWeight: Record<string, number> = {
-    LOW: 1,
-    MEDIUM: 2,
-    HIGH: 3,
-    CRITICAL: 4,
-};
-
 export function DashboardPage() {
     const [assets, setAssets] = useState<AssetResponse[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsSummaryResponse[]>([]);
@@ -76,30 +69,6 @@ export function DashboardPage() {
             })
             .slice(0, 3);
     }, [dashboardAssets]);
-
-    const riskOverview = useMemo(() => {
-        const totalRiskScore = analytics.reduce(
-            (sum, item) => sum + item.riskScore,
-            0
-        );
-
-        const averageRiskScore =
-            analytics.length > 0 ? Math.round(totalRiskScore / analytics.length) : 0;
-
-        const mostCommonRiskLevel = analytics
-            .map((item) => item.riskLevel)
-            .sort((left, right) => {
-                return (riskWeight[right] ?? 0) - (riskWeight[left] ?? 0);
-            })[0];
-
-        return {
-            totalAssets: assets.length,
-            analyticsCount: analytics.length,
-            watchlistCount: watchlist.length,
-            averageRiskScore,
-            mostCommonRiskLevel: mostCommonRiskLevel ?? "—",
-        };
-    }, [assets.length, analytics, watchlist.length]);
 
     useEffect(() => {
         async function loadDashboard() {
@@ -208,7 +177,7 @@ export function DashboardPage() {
             setError(
                 error instanceof Error
                     ? error.message
-                    : "Не удалось обновить watchlist"
+                    : "Не удалось обновить избранное"
             );
         } finally {
             setIsRefreshingWatchlist(false);
@@ -223,12 +192,8 @@ export function DashboardPage() {
         <section className="page">
             <div className="dashboard-hero">
                 <div>
-                    <p className="eyebrow">Dashboard</p>
+                    <p className="eyebrow">Дашборд</p>
                     <h1>ИнвестНавигатор ИИ</h1>
-                    <p>
-                        Главная панель проекта: активы, риск, избранные инструменты,
-                        провайдеры данных, AI-провайдеры и последние AI-отчёты.
-                    </p>
                 </div>
 
                 <div className="hero-actions">
@@ -236,7 +201,7 @@ export function DashboardPage() {
                         Открыть активы
                     </Link>
                     <Link to="/watchlist" className="ghost-button">
-                        Watchlist
+                        Избранное
                     </Link>
                     <Link to="/compare" className="ghost-button">
                         Сравнить активы
@@ -246,55 +211,10 @@ export function DashboardPage() {
 
             {error && <div className="error-block">{error}</div>}
 
-            <div className="dashboard-stats">
-                <article className="dashboard-stat-card">
-                    <span>Активов</span>
-                    <strong>{riskOverview.totalAssets}</strong>
-                    <p>Доступно для анализа</p>
-                </article>
-
-                <article className="dashboard-stat-card">
-                    <span>В watchlist</span>
-                    <strong>{riskOverview.watchlistCount}</strong>
-                    <p>Избранные инструменты</p>
-                </article>
-
-                <article className="dashboard-stat-card">
-                    <span>С аналитикой</span>
-                    <strong>{riskOverview.analyticsCount}</strong>
-                    <p>Есть свечи и risk score</p>
-                </article>
-
-                <article className="dashboard-stat-card">
-                    <span>Средний риск</span>
-                    <strong>{riskOverview.averageRiskScore}</strong>
-                    <p>Средний risk score</p>
-                </article>
-
-                <article className="dashboard-stat-card">
-                    <span>Макс. уровень</span>
-                    <strong>{riskOverview.mostCommonRiskLevel}</strong>
-                    <p>Самый высокий риск среди активов</p>
-                </article>
-
-                <article className="dashboard-stat-card provider-status-card">
-                    <span>Источник данных</span>
-                    <strong>{providerHealth?.activeProvider ?? "—"}</strong>
-                    <p>{providerHealth?.status ?? "UNKNOWN"}</p>
-                </article>
-
-                <article className="dashboard-stat-card provider-status-card">
-                    <span>AI-провайдер</span>
-                    <strong>{aiProviderHealth?.activeProvider ?? "—"}</strong>
-                    <p>{aiProviderHealth?.status ?? "UNKNOWN"}</p>
-                </article>
-            </div>
-
             <article className="panel">
                 <div className="panel-header">
                     <div>
-                        <h2>Watchlist</h2>
-                        <p>Избранные активы с текущей ценой и уровнем риска.</p>
+                        <h2>Избранное</h2>
                     </div>
 
                     <div className="hero-actions">
@@ -304,7 +224,7 @@ export function DashboardPage() {
                             disabled={isRefreshingWatchlist || watchlist.length === 0}
                             onClick={handleRefreshWatchlist}
                         >
-                            {isRefreshingWatchlist ? "Обновляем..." : "Обновить watchlist"}
+                            {isRefreshingWatchlist ? "Обновляем..." : "Обновить избранное"}
                         </button>
 
                         <Link to="/watchlist" className="secondary-link">
@@ -323,11 +243,7 @@ export function DashboardPage() {
 
                 {watchlistAssets.length === 0 ? (
                     <div className="empty-state">
-                        <h3>Watchlist пока пуст</h3>
-                        <p>
-                            Добавь SBER, BTCUSDT или другой актив, чтобы видеть его прямо на
-                            главной странице.
-                        </p>
+                        <h3>Избранное пока пустое</h3>
                         <Link to="/watchlist" className="primary-button">
                             Добавить активы
                         </Link>
@@ -354,8 +270,8 @@ export function DashboardPage() {
                                             analytics?.riskLevel?.toLowerCase() ?? "unknown"
                                         }`}
                                     >
-                    {analytics?.riskLevel ?? "—"}
-                  </span>
+                                        {analytics?.riskLevel ?? "—"}
+                                    </span>
                                 </div>
                             </Link>
                         ))}
@@ -367,7 +283,6 @@ export function DashboardPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Состояние провайдеров данных</h2>
-                        <p>Проверка доступности источников рыночных данных.</p>
                     </div>
                 </div>
 
@@ -383,13 +298,15 @@ export function DashboardPage() {
                                 </div>
 
                                 <span className={getProviderStatusClass(provider.status)}>
-                  {provider.status}
-                </span>
+                                    {provider.status}
+                                </span>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p>Информация о провайдерах данных недоступна.</p>
+                    <div className="empty-state">
+                        <h3>Нет данных</h3>
+                    </div>
                 )}
             </article>
 
@@ -397,7 +314,6 @@ export function DashboardPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Состояние AI-провайдеров</h2>
-                        <p>Проверка доступности источников AI-анализа.</p>
                     </div>
                 </div>
 
@@ -413,13 +329,15 @@ export function DashboardPage() {
                                 </div>
 
                                 <span className={getProviderStatusClass(provider.status)}>
-                  {provider.status}
-                </span>
+                                    {provider.status}
+                                </span>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p>Информация об AI-провайдерах недоступна.</p>
+                    <div className="empty-state">
+                        <h3>Нет данных</h3>
+                    </div>
                 )}
             </article>
 
@@ -428,7 +346,6 @@ export function DashboardPage() {
                     <div className="panel-header">
                         <div>
                             <h2>Рыночные карточки</h2>
-                            <p>Краткая сводка по активам из backend.</p>
                         </div>
 
                         <Link to="/assets" className="secondary-link">
@@ -456,8 +373,8 @@ export function DashboardPage() {
                                             item.analytics?.riskLevel?.toLowerCase() ?? "unknown"
                                         }`}
                                     >
-                    {item.analytics?.riskLevel ?? "—"}
-                  </span>
+                                        {item.analytics?.riskLevel ?? "—"}
+                                    </span>
                                 </div>
                             </Link>
                         ))}
@@ -468,7 +385,6 @@ export function DashboardPage() {
                     <div className="panel-header">
                         <div>
                             <h2>Топ риска</h2>
-                            <p>Активы с самым высоким risk score.</p>
                         </div>
                     </div>
 
@@ -497,17 +413,12 @@ export function DashboardPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Последние AI-отчёты</h2>
-                        <p>Недавние отчёты, сохранённые в базе.</p>
                     </div>
                 </div>
 
                 {reports.length === 0 ? (
                     <div className="empty-state">
                         <h3>Отчётов пока нет</h3>
-                        <p>
-                            Открой карточку любого актива и нажми «Создать отчёт». После
-                            этого отчёты появятся здесь.
-                        </p>
                         <Link to="/assets/SBER" className="primary-button">
                             Создать первый отчёт
                         </Link>
@@ -522,17 +433,17 @@ export function DashboardPage() {
                             >
                                 <div className="report-card-header">
                                     <strong>{report.ticker}</strong>
-                                    <span>{new Date(report.createdAt).toLocaleString("ru-RU")}</span>
+                                    <span>{formatDate(report.createdAt)}</span>
                                 </div>
 
                                 <p>{report.summary}</p>
 
                                 <div className="recent-report-footer">
-                  <span className={`risk risk-${report.riskLevel.toLowerCase()}`}>
-                    {report.riskLevel}
-                  </span>
+                                    <span className={`risk risk-${report.riskLevel.toLowerCase()}`}>
+                                        {report.riskLevel}
+                                    </span>
                                     <span>{report.provider}</span>
-                                    <span>{report.confidence} confidence</span>
+                                    <span>{report.confidence}</span>
                                 </div>
                             </Link>
                         ))}
@@ -559,4 +470,18 @@ function getProviderStatusClass(
     }
 
     return "risk risk-unknown";
+}
+
+function formatDate(value: string | null | undefined): string {
+    if (!value) {
+        return "—";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
+        return "—";
+    }
+
+    return date.toLocaleString("ru-RU");
 }

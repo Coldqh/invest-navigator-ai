@@ -65,6 +65,7 @@ public class AIReportService {
                 .build();
 
         AIReport savedReport = aiReportRepository.save(report);
+        aiReportRepository.flush();
 
         return aiReportMapper.toResponse(
                 savedReport,

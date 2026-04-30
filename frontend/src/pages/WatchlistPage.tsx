@@ -46,7 +46,7 @@ export function WatchlistPage() {
 
             await loadAnalytics(loadedWatchlist);
         } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Не удалось загрузить watchlist");
+            setError(error instanceof Error ? error.message : "Не удалось загрузить избранное");
         } finally {
             setIsLoading(false);
         }
@@ -86,7 +86,7 @@ export function WatchlistPage() {
             await loadAnalytics(updatedWatchlist);
         } catch (error: unknown) {
             setError(
-                error instanceof Error ? error.message : "Не удалось обновить watchlist"
+                error instanceof Error ? error.message : "Не удалось обновить избранное"
             );
         } finally {
             setIsRefreshingWatchlist(false);
@@ -128,19 +128,15 @@ export function WatchlistPage() {
     }
 
     if (isLoading) {
-        return <LoadingBlock text="Загружаем избранные активы..." />;
+        return <LoadingBlock text="Загружаем избранное..." />;
     }
 
     return (
         <section className="page">
             <div className="page-header">
                 <div>
-                    <p className="eyebrow">Watchlist</p>
+                    <p className="eyebrow">Избранное</p>
                     <h1>Избранные активы</h1>
-                    <p>
-                        Быстрый список инструментов, за которыми нужно следить. Сейчас это
-                        общий MVP-watchlist, позже привяжем его к пользователю.
-                    </p>
                 </div>
 
                 <div className="hero-actions">
@@ -150,7 +146,7 @@ export function WatchlistPage() {
                         disabled={isRefreshingWatchlist || watchlist.length === 0}
                         onClick={handleRefreshWatchlist}
                     >
-                        {isRefreshingWatchlist ? "Обновляем..." : "Обновить watchlist"}
+                        {isRefreshingWatchlist ? "Обновляем..." : "Обновить избранное"}
                     </button>
                 </div>
             </div>
@@ -175,11 +171,11 @@ export function WatchlistPage() {
                                 <span>{item.ticker}</span>
 
                                 <div>
-                                    <strong>{item.refreshed ? "UPDATED" : "FAILED"}</strong>
+                                    <strong>{item.refreshed ? "Обновлено" : "Ошибка"}</strong>
                                     <small>
                                         {item.refreshed
                                             ? `${item.source} · ${formatNumber(item.price)}`
-                                            : item.errorMessage ?? "Unknown error"}
+                                            : item.errorMessage ?? "Неизвестная ошибка"}
                                     </small>
                                 </div>
 
@@ -188,8 +184,8 @@ export function WatchlistPage() {
                                         item.refreshed ? "risk risk-low" : "risk risk-critical"
                                     }
                                 >
-                  {item.refreshed ? "OK" : "ERROR"}
-                </span>
+                                    {item.refreshed ? "OK" : "ERROR"}
+                                </span>
                             </div>
                         ))}
                     </div>
@@ -199,7 +195,7 @@ export function WatchlistPage() {
             <article className="panel">
                 <div className="panel-header">
                     <div>
-                        <h2>Мой watchlist</h2>
+                        <h2>Моё избранное</h2>
                         <p>Активов в списке: {watchlist.length}</p>
                     </div>
                 </div>
@@ -207,7 +203,6 @@ export function WatchlistPage() {
                 {watchlist.length === 0 ? (
                     <div className="empty-state">
                         <h3>Список пока пуст</h3>
-                        <p>Добавь SBER, BTCUSDT или любой другой актив из списка ниже.</p>
                     </div>
                 ) : (
                     <div className="watchlist-grid">
@@ -231,8 +226,8 @@ export function WatchlistPage() {
                                                 analytics?.riskLevel?.toLowerCase() ?? "unknown"
                                             }`}
                                         >
-                      {analytics?.riskLevel ?? "—"}
-                    </span>
+                                            {analytics?.riskLevel ?? "—"}
+                                        </span>
                                     </div>
 
                                     <div className="watchlist-card-actions">
@@ -260,7 +255,6 @@ export function WatchlistPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Добавить актив</h2>
-                        <p>Выбери инструмент из общего списка активов.</p>
                     </div>
                 </div>
 
@@ -287,12 +281,12 @@ export function WatchlistPage() {
                             >
                                 <strong>{asset.ticker}</strong>
                                 <span>
-                  {isUpdating
-                      ? "Обновляем..."
-                      : isInWatchlist
-                          ? "В избранном"
-                          : asset.exchange}
-                </span>
+                                    {isUpdating
+                                        ? "Обновляем..."
+                                        : isInWatchlist
+                                            ? "В избранном"
+                                            : asset.exchange}
+                                </span>
                             </button>
                         );
                     })}

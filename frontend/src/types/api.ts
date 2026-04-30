@@ -130,6 +130,35 @@ export type WatchlistRefreshResponse = {
     refreshedAt: string;
 };
 
+export type AIWatchlistItemSnapshot = {
+    ticker: string;
+    name: string;
+    assetType: AssetType;
+    exchange: string;
+    currency: string;
+    latestPrice: number | null;
+    latestVolume: number | null;
+    priceSource: string | null;
+    priceTimestamp: string | null;
+    dataError: string | null;
+};
+
+export type AIWatchlistReportResponse = {
+    provider: AIProviderType;
+    itemsCount: number;
+    items: AIWatchlistItemSnapshot[];
+    summary: string;
+    positiveFactors: string[];
+    negativeFactors: string[];
+    riskLevel: RiskLevel;
+    riskScore: number;
+    confidence: number;
+    explanation: string;
+    disclaimer: string;
+    fallbackReason: string | null;
+    generatedAt: string;
+};
+
 export type PortfolioPositionRequest = {
     ticker: string;
     quantity: number;

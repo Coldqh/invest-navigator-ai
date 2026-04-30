@@ -3,6 +3,7 @@ import type {
     AIProviderStatusResponse,
     AIReportResponse,
     AIPortfolioReportResponse,
+    AIWatchlistReportResponse,
     AnalyticsSummaryResponse,
     ApiErrorResponse,
     AssetResponse,
@@ -126,6 +127,12 @@ export const backendClient = {
 
     refreshWatchlist(): Promise<WatchlistRefreshResponse> {
         return request<WatchlistRefreshResponse>("/api/watchlist/refresh", {
+            method: "POST",
+        });
+    },
+
+    generateAIWatchlistReport(): Promise<AIWatchlistReportResponse> {
+        return request<AIWatchlistReportResponse>("/api/ai/watchlist/analyze", {
             method: "POST",
         });
     },

@@ -1,9 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { backendClient } from "../api/backendClient";
 import { LoadingBlock } from "../components/LoadingBlock";
 import type {
     AIPortfolioReportResponse,
+    AssetResponse,
     PortfolioSummaryResponse,
 } from "../types/api";
 
@@ -20,6 +22,8 @@ const initialFormState: PortfolioFormState = {
 };
 
 export function PortfolioPage() {
+    const [assets, setAssets] = useState<AssetResponse[]>([]);
+    const [assetSearch, setAssetSearch] = useState("");
     const [portfolio, setPortfolio] = useState<PortfolioSummaryResponse | null>(null);
     const [aiReport, setAiReport] = useState<AIPortfolioReportResponse | null>(null);
     const [formState, setFormState] = useState<PortfolioFormState>(initialFormState);
@@ -41,17 +45,44 @@ export function PortfolioPage() {
         );
     }, [portfolio]);
 
+    const filteredAssets = useMemo(() => {
+        const normalizedSearch = assetSearch.trim().toLowerCase();
+
+        if (!normalizedSearch) {
+            return assets;
+        }
+
+        return assets.filter((asset) => {
+            return (
+                asset.ticker.toLowerCase().includes(normalizedSearch) ||
+                asset.name.toLowerCase().includes(normalizedSearch)
+            );
+        });
+    }, [assets, assetSearch]);
+
     useEffect(() => {
-        loadPortfolio();
+        loadPage();
     }, []);
 
-    async function loadPortfolio() {
+    async function loadPage() {
         try {
             setIsLoading(true);
             setError("");
 
-            const loadedPortfolio = await backendClient.getPortfolio();
+            const [loadedAssets, loadedPortfolio] = await Promise.all([
+                backendClient.getAssets(),
+                backendClient.getPortfolio(),
+            ]);
+
+            setAssets(loadedAssets);
             setPortfolio(loadedPortfolio);
+
+            if (loadedAssets.length > 0 && !formState.ticker) {
+                setFormState((current) => ({
+                    ...current,
+                    ticker: loadedAssets[0].ticker,
+                }));
+            }
         } catch (error: unknown) {
             setError(error instanceof Error ? error.message : "Не удалось загрузить портфель");
         } finally {
@@ -67,7 +98,7 @@ export function PortfolioPage() {
         const averageBuyPrice = Number(formState.averageBuyPrice);
 
         if (!ticker) {
-            setError("Укажи ticker актива");
+            setError("Выбери тикер актива");
             return;
         }
 
@@ -91,7 +122,10 @@ export function PortfolioPage() {
                 averageBuyPrice,
             });
 
-            setFormState(initialFormState);
+            setFormState((current) => ({
+                ...initialFormState,
+                ticker: current.ticker,
+            }));
             setAiReport(null);
 
             const updatedPortfolio = await backendClient.getPortfolio();
@@ -146,12 +180,8 @@ export function PortfolioPage() {
         <section className="page">
             <div className="page-header">
                 <div>
-                    <p className="eyebrow">Portfolio</p>
+                    <p className="eyebrow">Портфель</p>
                     <h1>Инвестиционный портфель</h1>
-                    <p>
-                        Рабочий MVP портфеля: позиции, текущая стоимость, прибыль/убыток
-                        и AI-анализ через активный provider.
-                    </p>
                 </div>
 
                 <div className="hero-actions">
@@ -172,13 +202,11 @@ export function PortfolioPage() {
                 <article className="stat-card">
                     <span>Вложено</span>
                     <strong>{formatMoney(portfolio?.totalInvested)}</strong>
-                    <small>Сумма покупки всех позиций</small>
                 </article>
 
                 <article className="stat-card">
                     <span>Текущая стоимость</span>
                     <strong>{formatMoney(portfolio?.totalCurrentValue)}</strong>
-                    <small>По текущим market data</small>
                 </article>
 
                 <article className="stat-card">
@@ -202,24 +230,37 @@ export function PortfolioPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Добавить позицию</h2>
-                        <p>Если позиция с таким ticker уже есть, backend обновит её значения.</p>
                     </div>
                 </div>
 
                 <form className="portfolio-form" onSubmit={handleSubmit}>
                     <label>
-                        <span>Ticker</span>
+                        <span>Поиск актива</span>
                         <input
                             type="text"
+                            value={assetSearch}
+                            placeholder="SBER, BTCUSDT, Яндекс..."
+                            onChange={(event) => setAssetSearch(event.target.value)}
+                        />
+                    </label>
+
+                    <label>
+                        <span>Тикер</span>
+                        <select
                             value={formState.ticker}
-                            placeholder="SBER"
                             onChange={(event) =>
                                 setFormState((current) => ({
                                     ...current,
                                     ticker: event.target.value,
                                 }))
                             }
-                        />
+                        >
+                            {filteredAssets.map((asset) => (
+                                <option value={asset.ticker} key={asset.id}>
+                                    {asset.ticker} — {asset.name}
+                                </option>
+                            ))}
+                        </select>
                     </label>
 
                     <label>
@@ -259,7 +300,7 @@ export function PortfolioPage() {
                     <button
                         type="submit"
                         className="primary-button"
-                        disabled={isSavingPosition}
+                        disabled={isSavingPosition || filteredAssets.length === 0}
                     >
                         {isSavingPosition ? "Сохраняем..." : "Добавить позицию"}
                     </button>
@@ -270,10 +311,10 @@ export function PortfolioPage() {
                 <article className="panel">
                     <div className="panel-header">
                         <div>
-                            <p className="eyebrow">AI Portfolio Report</p>
+                            <p className="eyebrow">AI-отчёт по портфелю</p>
                             <h2>AI-анализ портфеля</h2>
                             <p>
-                                Provider: <strong>{aiReport.provider}</strong> · Risk:{" "}
+                                Провайдер: <strong>{aiReport.provider}</strong> · Риск:{" "}
                                 <span className={`risk risk-${aiReport.riskLevel.toLowerCase()}`}>
                                     {aiReport.riskLevel}
                                 </span>
@@ -283,21 +324,21 @@ export function PortfolioPage() {
 
                     {aiReport.fallbackReason && (
                         <div className="error-block">
-                            <strong>Fallback reason:</strong>
+                            <strong>Причина fallback:</strong>
                             <pre>{aiReport.fallbackReason}</pre>
                         </div>
                     )}
 
                     <div className="ai-report-grid">
                         <div>
-                            <h3>Summary</h3>
+                            <h3>Краткий вывод</h3>
                             <p>{aiReport.summary}</p>
                         </div>
 
                         <div>
-                            <h3>Risk score</h3>
+                            <h3>Риск-скор</h3>
                             <strong>{aiReport.riskScore} / 100</strong>
-                            <p>Confidence: {formatPercent(aiReport.confidence * 100)}</p>
+                            <p>Уверенность: {formatPercent(aiReport.confidence * 100)}</p>
                         </div>
                     </div>
 
@@ -322,7 +363,7 @@ export function PortfolioPage() {
                     </div>
 
                     <div className="ai-explanation">
-                        <h3>Explanation</h3>
+                        <h3>Объяснение</h3>
                         <p>{aiReport.explanation}</p>
                         <small>{aiReport.disclaimer}</small>
                     </div>
@@ -333,14 +374,12 @@ export function PortfolioPage() {
                 <div className="panel-header">
                     <div>
                         <h2>Позиции</h2>
-                        <p>Текущие позиции портфеля: {portfolio?.positionsCount ?? 0}</p>
                     </div>
                 </div>
 
                 {!hasPositions ? (
                     <div className="empty-state">
                         <h3>Портфель пока пуст</h3>
-                        <p>Добавь BTCUSDT, SBER или другой актив, чтобы увидеть расчёты.</p>
                     </div>
                 ) : (
                     <div className="table-wrapper">
@@ -353,7 +392,7 @@ export function PortfolioPage() {
                                 <th>Средняя</th>
                                 <th>Текущая</th>
                                 <th>Стоимость</th>
-                                <th>P/L</th>
+                                <th>Прибыль/убыток</th>
                                 <th>Источник</th>
                                 <th></th>
                             </tr>
@@ -445,10 +484,16 @@ function formatDate(value: string | null | undefined): string {
         return "—";
     }
 
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
+        return "—";
+    }
+
     return new Intl.DateTimeFormat("ru-RU", {
         dateStyle: "short",
         timeStyle: "short",
-    }).format(new Date(value));
+    }).format(date);
 }
 
 function getProfitClass(value: number | null | undefined): string {

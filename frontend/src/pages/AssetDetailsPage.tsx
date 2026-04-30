@@ -43,7 +43,7 @@ export function AssetDetailsPage() {
     useEffect(() => {
         async function loadAssetDetails() {
             if (!normalizedTicker) {
-                setError("Ticker is required");
+                setError("Не указан тикер");
                 setIsLoading(false);
                 return;
             }
@@ -163,7 +163,7 @@ export function AssetDetailsPage() {
                     )
                 );
 
-                setWarning(`${normalizedTicker} убран из watchlist`);
+                setWarning(`${normalizedTicker} убран из избранного`);
                 return;
             }
 
@@ -181,12 +181,12 @@ export function AssetDetailsPage() {
                 return [addedItem, ...currentWatchlist];
             });
 
-            setWarning(`${normalizedTicker} добавлен в watchlist`);
+            setWarning(`${normalizedTicker} добавлен в избранное`);
         } catch (error: unknown) {
             setError(
                 error instanceof Error
                     ? error.message
-                    : "Не удалось обновить watchlist"
+                    : "Не удалось обновить избранное"
             );
         } finally {
             setIsUpdatingWatchlist(false);
@@ -224,7 +224,6 @@ export function AssetDetailsPage() {
                     <div className="badge-row">
                         <span>{asset.exchange}</span>
                         <span>{asset.currency}</span>
-                        <span>{asset.active ? "Active" : "Inactive"}</span>
                     </div>
 
                     <div className="hero-actions">
@@ -237,8 +236,8 @@ export function AssetDetailsPage() {
                             {isUpdatingWatchlist
                                 ? "Обновляем..."
                                 : isInWatchlist
-                                    ? "В watchlist"
-                                    : "Добавить в watchlist"}
+                                    ? "В избранном"
+                                    : "Добавить в избранное"}
                         </button>
 
                         <button
@@ -251,7 +250,7 @@ export function AssetDetailsPage() {
                         </button>
 
                         <Link to="/watchlist" className="ghost-button">
-                            Открыть watchlist
+                            Открыть избранное
                         </Link>
                     </div>
                 </div>
@@ -264,31 +263,26 @@ export function AssetDetailsPage() {
                 <article className="dashboard-stat-card">
                     <span>Текущая цена</span>
                     <strong>{formatNumber(marketData?.price)}</strong>
-                    <p>{marketData?.source ?? "—"}</p>
                 </article>
 
                 <article className="dashboard-stat-card">
                     <span>Объём</span>
                     <strong>{formatNumber(marketData?.volume)}</strong>
-                    <p>Последняя рыночная запись</p>
                 </article>
 
                 <article className="dashboard-stat-card">
-                    <span>Risk score</span>
+                    <span>Риск-скор</span>
                     <strong>{analytics?.riskScore ?? "—"}</strong>
-                    <p>{analytics?.riskLevel ?? "—"}</p>
                 </article>
 
                 <article className="dashboard-stat-card">
                     <span>Изменение</span>
                     <strong>{formatPercent(analytics?.priceChangePercent)}</strong>
-                    <p>{formatNumber(analytics?.priceChange)}</p>
                 </article>
 
                 <article className="dashboard-stat-card">
                     <span>Волатильность</span>
                     <strong>{formatPercent(analytics?.volatilityPercent)}</strong>
-                    <p>{analytics?.dataPoints ?? 0} точек данных</p>
                 </article>
             </div>
 
@@ -297,7 +291,6 @@ export function AssetDetailsPage() {
                     <div className="panel-header">
                         <div>
                             <h2>График свечей</h2>
-                            <p>Мини-график по close-ценам за доступный период.</p>
                         </div>
                     </div>
 
@@ -329,22 +322,20 @@ export function AssetDetailsPage() {
                     <div className="panel-header">
                         <div>
                             <h2>Аналитика</h2>
-                            <p>Сводные метрики по активному источнику данных.</p>
                         </div>
                     </div>
 
                     {analytics ? (
                         <div className="dashboard-asset-list">
-                            <MetricRow label="First close" value={formatNumber(analytics.firstClose)} />
-                            <MetricRow label="Last close" value={formatNumber(analytics.lastClose)} />
-                            <MetricRow label="Average volume" value={formatNumber(analytics.averageVolume)} />
-                            <MetricRow label="Data points" value={analytics.dataPoints.toString()} />
-                            <MetricRow label="Risk level" value={analytics.riskLevel} />
+                            <MetricRow label="Первое закрытие" value={formatNumber(analytics.firstClose)} />
+                            <MetricRow label="Последнее закрытие" value={formatNumber(analytics.lastClose)} />
+                            <MetricRow label="Средний объём" value={formatNumber(analytics.averageVolume)} />
+                            <MetricRow label="Точек данных" value={analytics.dataPoints.toString()} />
+                            <MetricRow label="Уровень риска" value={analytics.riskLevel} />
                         </div>
                     ) : (
                         <div className="empty-state">
                             <h3>Аналитика недоступна</h3>
-                            <p>Backend не вернул сводку по этому активу.</p>
                         </div>
                     )}
                 </article>
@@ -354,10 +345,6 @@ export function AssetDetailsPage() {
                 <div className="panel-header">
                     <div>
                         <h2>AI-отчёт</h2>
-                        <p>
-                            Отчёт создаётся через активный AI-провайдер. Если реальный
-                            провайдер недоступен, backend использует fallback.
-                        </p>
                     </div>
 
                     <button
@@ -374,7 +361,6 @@ export function AssetDetailsPage() {
                     {reports.length === 0 && (
                         <div className="empty-state">
                             <h3>Отчётов пока нет</h3>
-                            <p>Нажми «Создать отчёт», чтобы получить AI-анализ актива.</p>
                         </div>
                     )}
 
@@ -415,7 +401,6 @@ function InlineMiniChart({ candles }: InlineMiniChartProps) {
         return (
             <div className="empty-state">
                 <h3>Недостаточно свечей</h3>
-                <p>Для графика нужно минимум две точки данных.</p>
             </div>
         );
     }
@@ -448,7 +433,7 @@ function InlineMiniChart({ candles }: InlineMiniChartProps) {
             <svg
                 viewBox={`0 0 ${width} ${height}`}
                 role="img"
-                aria-label="Mini close price chart"
+                aria-label="График цены закрытия"
                 style={{ width: "100%", height: "220px" }}
             >
                 <polyline
@@ -460,10 +445,6 @@ function InlineMiniChart({ candles }: InlineMiniChartProps) {
                     points={points}
                 />
             </svg>
-
-            <p>
-                Диапазон close: {formatNumber(minClose)} — {formatNumber(maxClose)}
-            </p>
         </div>
     );
 }
@@ -491,5 +472,11 @@ function formatDate(value: string | null | undefined): string {
         return "—";
     }
 
-    return new Date(value).toLocaleString("ru-RU");
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1971) {
+        return "—";
+    }
+
+    return date.toLocaleString("ru-RU");
 }

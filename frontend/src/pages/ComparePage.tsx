@@ -76,12 +76,8 @@ export function ComparePage() {
         <section className="page">
             <div className="page-header">
                 <div>
-                    <p className="eyebrow">Compare</p>
+                    <p className="eyebrow">Сравнение</p>
                     <h1>Сравнение активов</h1>
-                    <p>
-                        Выбери от 2 до 5 инструментов и сравни их по цене, доходности,
-                        волатильности, объёму и уровню риска.
-                    </p>
                 </div>
             </div>
 
@@ -91,7 +87,6 @@ export function ComparePage() {
                 <div className="panel-header">
                     <div>
                         <h2>Выбор активов</h2>
-                        <p>Сейчас выбрано: {selectedTickers.length} / 5</p>
                     </div>
 
                     <button
@@ -133,7 +128,9 @@ export function ComparePage() {
                 <h2>Результаты сравнения</h2>
 
                 {results.length === 0 ? (
-                    <p>Пока нет результатов. Выбери активы и нажми «Сравнить».</p>
+                    <div className="empty-state">
+                        <h3>Нет результатов</h3>
+                    </div>
                 ) : (
                     <div className="compare-table-wrapper">
                         <table className="compare-table">
@@ -183,19 +180,19 @@ export function ComparePage() {
                             </tr>
 
                             <tr>
-                                <td>Risk score</td>
+                                <td>Риск-скор</td>
                                 {results.map((asset) => (
                                     <td key={asset.ticker}>{asset.riskScore} / 100</td>
                                 ))}
                             </tr>
 
                             <tr>
-                                <td>Risk level</td>
+                                <td>Уровень риска</td>
                                 {results.map((asset) => (
                                     <td key={asset.ticker}>
-                      <span className={`risk risk-${asset.riskLevel.toLowerCase()}`}>
-                        {asset.riskLevel}
-                      </span>
+                                        <span className={`risk risk-${asset.riskLevel.toLowerCase()}`}>
+                                            {asset.riskLevel}
+                                        </span>
                                     </td>
                                 ))}
                             </tr>

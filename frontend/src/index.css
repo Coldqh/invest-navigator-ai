@@ -908,3 +908,55 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+.watchlist-ai-items {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.watchlist-ai-item {
+  display: grid;
+  grid-template-columns: 90px 90px 110px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.32);
+  color: #cbd5e1;
+}
+
+.watchlist-ai-item strong {
+  color: #38bdf8;
+}
+
+.watchlist-ai-item span {
+  color: #cbd5e1;
+}
+
+.watchlist-ai-item small {
+  grid-column: 1 / -1;
+  color: #fecaca;
+}
+
+@media (max-width: 760px) {
+  .watchlist-ai-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+.portfolio-form select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e5edf7;
+  outline: none;
+}
+
+.portfolio-form select:focus {
+  border-color: rgba(56, 189, 248, 0.6);
+}

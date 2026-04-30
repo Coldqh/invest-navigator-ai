@@ -47,15 +47,16 @@ public class AIProviderPromptBuilder {
 
     private String buildSystemPrompt() {
         return """
-                You are an investment analytics assistant inside an educational portfolio analysis application.
+                Ты — инвестиционный аналитический помощник внутри учебного приложения для анализа активов и портфеля.
                 
-                Return only a valid JSON object.
-                Do not use markdown.
-                Do not use code fences.
-                Do not add text before JSON.
-                Do not add text after JSON.
+                Всегда отвечай на русском языке.
+                Верни только валидный JSON-объект.
+                Не используй markdown.
+                Не используй code fence.
+                Не добавляй текст перед JSON.
+                Не добавляй текст после JSON.
                 
-                Required JSON object:
+                Обязательная структура JSON:
                 {
                   "summary": "string",
                   "positiveFactors": ["string"],
@@ -67,16 +68,18 @@ public class AIProviderPromptBuilder {
                   "disclaimer": "string"
                 }
                 
-                Strict rules:
-                - summary must be a short text;
-                - positiveFactors must be an array of strings;
-                - negativeFactors must be an array of strings;
-                - riskLevel must be exactly one of: LOW, MEDIUM, HIGH, CRITICAL;
-                - riskScore must be an integer from 0 to 100;
-                - confidence must be a decimal number from 0 to 1;
-                - explanation must explain the reasoning in plain language;
-                - disclaimer must say that this is educational analysis and not financial advice;
-                - never provide direct financial advice.
+                Строгие правила:
+                - summary должен быть коротким выводом на русском языке;
+                - positiveFactors должен быть массивом строк на русском языке;
+                - negativeFactors должен быть массивом строк на русском языке;
+                - riskLevel должен быть строго одним из значений: LOW, MEDIUM, HIGH, CRITICAL;
+                - riskScore должен быть целым числом от 0 до 100;
+                - confidence должен быть числом от 0 до 1;
+                - explanation должен объяснять рассуждение простым русским языком;
+                - disclaimer должен быть на русском языке и говорить, что это учебный анализ, а не инвестиционная рекомендация;
+                - не советуй покупать, продавать или держать актив;
+                - не обещай доходность;
+                - не выдавай анализ за профессиональную финансовую консультацию.
                 """;
     }
 
@@ -84,25 +87,32 @@ public class AIProviderPromptBuilder {
         AnalyticsSummaryResponse analytics = request.analytics();
 
         return """
-                Analyze this asset using the provided metrics.
+                Проанализируй актив по предоставленным рыночным метрикам.
                 
-                Asset:
-                - Ticker: %s
-                - Name: %s
+                Актив:
+                - Тикер: %s
+                - Название: %s
                 
-                Market metrics:
-                - Current price: %s
-                - First close: %s
-                - Last close: %s
-                - Price change: %s
-                - Price change percent: %s%%
-                - Average volume: %s
-                - Volatility percent: %s%%
-                - Risk score: %s / 100
-                - Risk level: %s
-                - Data points: %s
+                Рыночные метрики:
+                - Текущая цена: %s
+                - Первая цена закрытия в выборке: %s
+                - Последняя цена закрытия в выборке: %s
+                - Изменение цены: %s
+                - Изменение цены в процентах: %s%%
+                - Средний объём: %s
+                - Волатильность в процентах: %s%%
+                - Риск-скор: %s / 100
+                - Уровень риска: %s
+                - Количество точек данных: %s
                 
-                Return only JSON matching the required object.
+                Сфокусируйся на:
+                - динамике цены;
+                - волатильности;
+                - уровне риска;
+                - качестве выборки данных;
+                - понятном объяснении для начинающего инвестора.
+                
+                Верни только JSON по обязательной структуре.
                 """.formatted(
                 request.ticker(),
                 request.name(),
@@ -128,27 +138,28 @@ public class AIProviderPromptBuilder {
                 .collect(Collectors.joining("\n"));
 
         return """
-                Analyze this investment portfolio using the provided metrics.
+                Проанализируй инвестиционный портфель по предоставленным метрикам.
                 
-                Portfolio totals:
-                - Positions count: %s
-                - Total invested: %s
-                - Total current value: %s
-                - Total profit/loss: %s
-                - Total profit/loss percent: %s%%
-                - Calculated at: %s
+                Итоги портфеля:
+                - Количество позиций: %s
+                - Всего вложено: %s
+                - Текущая стоимость: %s
+                - Прибыль/убыток: %s
+                - Прибыль/убыток в процентах: %s%%
+                - Дата расчёта: %s
                 
-                Portfolio positions:
+                Позиции портфеля:
                 %s
                 
-                Focus on:
-                - portfolio concentration;
-                - profit and loss situation;
-                - risky positions;
-                - balance between crypto and stocks;
-                - whether the portfolio looks stable or speculative.
+                Сфокусируйся на:
+                - концентрации портфеля;
+                - текущей прибыли или убытке;
+                - наиболее рискованных позициях;
+                - балансе между криптовалютами и акциями;
+                - общей устойчивости или спекулятивности портфеля;
+                - понятном объяснении для начинающего инвестора.
                 
-                Return only JSON matching the required object.
+                Верни только JSON по обязательной структуре.
                 """.formatted(
                 portfolio.positionsCount(),
                 portfolio.totalInvested(),
@@ -167,23 +178,24 @@ public class AIProviderPromptBuilder {
                 .collect(Collectors.joining("\n"));
 
         return """
-                Analyze this watchlist using the provided market data.
+                Проанализируй watchlist по предоставленным рыночным данным.
                 
                 Watchlist:
-                - Items count: %s
-                - Generated at: %s
+                - Количество активов: %s
+                - Дата генерации: %s
                 
-                Watchlist items:
+                Активы в watchlist:
                 %s
                 
-                Focus on:
-                - assets that look risky;
-                - assets that look relatively stable;
-                - balance between crypto and stocks;
-                - data source quality;
-                - what deserves closer monitoring.
+                Сфокусируйся на:
+                - какие активы выглядят более рискованными;
+                - какие активы выглядят относительно стабильными;
+                - балансе между криптовалютами и акциями;
+                - качестве источников данных;
+                - активах, за которыми стоит внимательнее наблюдать;
+                - понятном объяснении для начинающего инвестора.
                 
-                Return only JSON matching the required object.
+                Верни только JSON по обязательной структуре.
                 """.formatted(
                 request.items().size(),
                 request.generatedAt(),
@@ -198,25 +210,25 @@ public class AIProviderPromptBuilder {
                 .collect(Collectors.joining("\n"));
 
         return """
-                Compare these assets using the provided analytics metrics.
+                Сравни активы по предоставленным аналитическим метрикам.
                 
-                Compare request:
-                - Assets count: %s
-                - Generated at: %s
+                Запрос на сравнение:
+                - Количество активов: %s
+                - Дата генерации: %s
                 
-                Assets:
+                Активы:
                 %s
                 
-                Focus on:
-                - which asset looks more volatile;
-                - which asset has stronger price movement;
-                - which asset has better risk profile;
-                - whether one asset looks more speculative;
-                - data quality and sample size;
-                - clear explanation for a beginner investor.
+                Сфокусируйся на:
+                - какой актив выглядит более волатильным;
+                - у какого актива сильнее движение цены;
+                - у какого актива лучше профиль риска;
+                - выглядит ли один из активов более спекулятивным;
+                - качестве данных и размере выборки;
+                - понятном объяснении для начинающего инвестора.
                 
-                Do not tell the user to buy or sell.
-                Return only JSON matching the required object.
+                Не говори пользователю покупать, продавать или держать актив.
+                Верни только JSON по обязательной структуре.
                 """.formatted(
                 request.assets().size(),
                 request.generatedAt(),
@@ -227,18 +239,18 @@ public class AIProviderPromptBuilder {
     private String formatPortfolioPosition(PortfolioPositionResponse position) {
         return """
                 - %s:
-                  name: %s
-                  type: %s
-                  exchange: %s
-                  currency: %s
-                  quantity: %s
-                  average buy price: %s
-                  invested amount: %s
-                  current price: %s
-                  current value: %s
-                  profit/loss: %s
-                  profit/loss percent: %s%%
-                  price source: %s
+                  название: %s
+                  тип: %s
+                  биржа: %s
+                  валюта: %s
+                  количество: %s
+                  средняя цена покупки: %s
+                  вложенная сумма: %s
+                  текущая цена: %s
+                  текущая стоимость: %s
+                  прибыль/убыток: %s
+                  прибыль/убыток в процентах: %s%%
+                  источник цены: %s
                 """.formatted(
                 position.ticker(),
                 position.name(),
@@ -259,15 +271,15 @@ public class AIProviderPromptBuilder {
     private String formatWatchlistItem(AIWatchlistItemSnapshot item) {
         return """
                 - %s:
-                  name: %s
-                  type: %s
-                  exchange: %s
-                  currency: %s
-                  latest price: %s
-                  latest volume: %s
-                  price source: %s
-                  price timestamp: %s
-                  data error: %s
+                  название: %s
+                  тип: %s
+                  биржа: %s
+                  валюта: %s
+                  последняя цена: %s
+                  последний объём: %s
+                  источник цены: %s
+                  время цены: %s
+                  ошибка данных: %s
                 """.formatted(
                 item.ticker(),
                 item.name(),
@@ -285,17 +297,17 @@ public class AIProviderPromptBuilder {
     private String formatCompareAsset(AICompareAssetSnapshot asset) {
         return """
                 - %s:
-                  name: %s
-                  current price: %s
-                  first close: %s
-                  last close: %s
-                  price change: %s
-                  price change percent: %s%%
-                  average volume: %s
-                  volatility percent: %s%%
-                  risk score: %s / 100
-                  risk level: %s
-                  data points: %s
+                  название: %s
+                  текущая цена: %s
+                  первая цена закрытия в выборке: %s
+                  последняя цена закрытия в выборке: %s
+                  изменение цены: %s
+                  изменение цены в процентах: %s%%
+                  средний объём: %s
+                  волатильность в процентах: %s%%
+                  риск-скор: %s / 100
+                  уровень риска: %s
+                  количество точек данных: %s
                 """.formatted(
                 asset.ticker(),
                 asset.name(),

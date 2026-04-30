@@ -43,9 +43,8 @@ export function AssetsPage() {
         <section className="page">
             <div className="page-header">
                 <div>
-                    <p className="eyebrow">Assets</p>
+                    <p className="eyebrow">Активы</p>
                     <h1>Активы</h1>
-                    <p>Инструменты, доступные для анализа в MVP.</p>
                 </div>
             </div>
 

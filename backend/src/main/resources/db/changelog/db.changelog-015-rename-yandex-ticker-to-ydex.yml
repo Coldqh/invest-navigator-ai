@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 015-rename-yandex-ticker-to-ydex
+      author: vlad
+      changes:
+        - sql:
+            splitStatements: false
+            stripComments: true
+            sql: |
+              DO $$
+              BEGIN
+                  IF EXISTS (
+                      SELECT 1
+                      FROM assets
+                      WHERE UPPER(ticker) = 'YNDX'
+                        AND UPPER(exchange) = 'MOEX'
+                  ) AND NOT EXISTS (
+                      SELECT 1
+                      FROM assets
+                      WHERE UPPER(ticker) = 'YDEX'
+                        AND UPPER(exchange) = 'MOEX'
+                  ) THEN
+                      UPDATE assets
+                      SET ticker = 'YDEX',
+                          name = 'Яндекс',
+                          isin = 'RU000A107T19',
+                          updated_at = now()
+                      WHERE UPPER(ticker) = 'YNDX'
+                        AND UPPER(exchange) = 'MOEX';
+                  END IF;
+
+                  IF EXISTS (
+                      SELECT 1
+                      FROM assets
+                      WHERE UPPER(ticker) = 'YNDX'
+                        AND UPPER(exchange) = 'MOEX'
+                  ) AND EXISTS (
+                      SELECT 1
+                      FROM assets
+                      WHERE UPPER(ticker) = 'YDEX'
+                        AND UPPER(exchange) = 'MOEX'
+                  ) THEN
+                      UPDATE assets
+                      SET active = false,
+                          updated_at = now()
+                      WHERE UPPER(ticker) = 'YNDX'
+                        AND UPPER(exchange) = 'MOEX';
+                  END IF;
+              END $$;
