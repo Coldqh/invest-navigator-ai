@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { backendClient } from "../api/backendClient";
 import { LoadingBlock } from "../components/LoadingBlock";
-import type { AnalyticsSummaryResponse, AssetResponse } from "../types/api";
+import type {
+    AICompareReportResponse,
+    AnalyticsSummaryResponse,
+    AssetResponse,
+} from "../types/api";
 
 export function ComparePage() {
     const [assets, setAssets] = useState<AssetResponse[]>([]);
     const [selectedTickers, setSelectedTickers] = useState<string[]>(["SBER", "GAZP"]);
     const [results, setResults] = useState<AnalyticsSummaryResponse[]>([]);
+    const [aiReport, setAiReport] = useState<AICompareReportResponse | null>(null);
     const [isLoadingAssets, setIsLoadingAssets] = useState(true);
     const [isComparing, setIsComparing] = useState(false);
+    const [isGeneratingAIReport, setIsGeneratingAIReport] = useState(false);
     const [error, setError] = useState("");
 
     const selectedAssets = useMemo(() => {
@@ -34,6 +40,8 @@ export function ComparePage() {
 
     function toggleTicker(ticker: string) {
         setSelectedTickers((previousTickers) => {
+            setAiReport(null);
+
             if (previousTickers.includes(ticker)) {
                 return previousTickers.filter((item) => item !== ticker);
             }
@@ -50,6 +58,7 @@ export function ComparePage() {
 
     async function handleCompare() {
         setError("");
+        setAiReport(null);
 
         if (selectedTickers.length < 2) {
             setError("Выбери минимум 2 актива для сравнения");
@@ -65,6 +74,34 @@ export function ComparePage() {
             setError(error instanceof Error ? error.message : "Не удалось сравнить активы");
         } finally {
             setIsComparing(false);
+        }
+    }
+
+    async function handleGenerateAIReport() {
+        setError("");
+
+        if (selectedTickers.length !== 2) {
+            setError("AI-анализ сравнения доступен для двух активов");
+            return;
+        }
+
+        setIsGeneratingAIReport(true);
+
+        try {
+            const report = await backendClient.generateAICompareReport(
+                selectedTickers[0],
+                selectedTickers[1]
+            );
+
+            setAiReport(report);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось создать AI-анализ сравнения"
+            );
+        } finally {
+            setIsGeneratingAIReport(false);
         }
     }
 
@@ -89,14 +126,25 @@ export function ComparePage() {
                         <h2>Выбор активов</h2>
                     </div>
 
-                    <button
-                        type="button"
-                        className="primary-button"
-                        disabled={isComparing || selectedTickers.length < 2}
-                        onClick={handleCompare}
-                    >
-                        {isComparing ? "Сравниваем..." : "Сравнить"}
-                    </button>
+                    <div className="hero-actions">
+                        <button
+                            type="button"
+                            className="primary-button"
+                            disabled={isComparing || selectedTickers.length < 2}
+                            onClick={handleCompare}
+                        >
+                            {isComparing ? "Сравниваем..." : "Сравнить"}
+                        </button>
+
+                        <button
+                            type="button"
+                            className="ghost-button"
+                            disabled={isGeneratingAIReport || selectedTickers.length !== 2}
+                            onClick={handleGenerateAIReport}
+                        >
+                            {isGeneratingAIReport ? "Генерируем..." : "AI-анализ"}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="compare-picker">
@@ -123,6 +171,68 @@ export function ComparePage() {
                     </p>
                 )}
             </article>
+
+            {aiReport && (
+                <article className="panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>AI-анализ сравнения</h2>
+                            <p>
+                                Провайдер: <strong>{aiReport.provider}</strong> · Риск:{" "}
+                                <span className={`risk risk-${aiReport.riskLevel.toLowerCase()}`}>
+                                    {aiReport.riskLevel}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {aiReport.fallbackReason && (
+                        <div className="error-block">
+                            <strong>Причина fallback:</strong>
+                            <pre>{aiReport.fallbackReason}</pre>
+                        </div>
+                    )}
+
+                    <div className="ai-report-grid">
+                        <div>
+                            <h3>Краткий вывод</h3>
+                            <p>{aiReport.summary}</p>
+                        </div>
+
+                        <div>
+                            <h3>Риск-скор</h3>
+                            <strong>{aiReport.riskScore} / 100</strong>
+                            <p>Уверенность: {formatPercent(aiReport.confidence * 100)}</p>
+                        </div>
+                    </div>
+
+                    <div className="ai-factors-grid">
+                        <div>
+                            <h3>Позитивные факторы</h3>
+                            <ul>
+                                {aiReport.positiveFactors.map((factor) => (
+                                    <li key={factor}>{factor}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3>Негативные факторы</h3>
+                            <ul>
+                                {aiReport.negativeFactors.map((factor) => (
+                                    <li key={factor}>{factor}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="ai-explanation">
+                        <h3>Объяснение</h3>
+                        <p>{aiReport.explanation}</p>
+                        <small>{aiReport.disclaimer}</small>
+                    </div>
+                </article>
+            )}
 
             <article className="panel">
                 <h2>Результаты сравнения</h2>
@@ -210,4 +320,14 @@ export function ComparePage() {
             </article>
         </section>
     );
+}
+
+function formatPercent(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+        return "—";
+    }
+
+    return `${new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 2,
+    }).format(value)}%`;
 }

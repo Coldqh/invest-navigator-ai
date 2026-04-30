@@ -1,9 +1,9 @@
 import type {
+    AICompareReportResponse,
     AIProviderHealthResponse,
     AIProviderStatusResponse,
     AIReportResponse,
     AIPortfolioReportResponse,
-    AIWatchlistReportResponse,
     AnalyticsSummaryResponse,
     ApiErrorResponse,
     AssetResponse,
@@ -87,6 +87,21 @@ export const backendClient = {
         });
     },
 
+    generateAICompareReport(
+        firstTicker: string,
+        secondTicker: string
+    ): Promise<AICompareReportResponse> {
+        const first = encodeURIComponent(firstTicker);
+        const second = encodeURIComponent(secondTicker);
+
+        return request<AICompareReportResponse>(
+            `/api/ai/compare/analyze?firstTicker=${first}&secondTicker=${second}`,
+            {
+                method: "POST",
+            }
+        );
+    },
+
     refreshMarketData(ticker: string): Promise<MarketPriceResponse> {
         return request<MarketPriceResponse>(`/api/market-data/refresh/${ticker}`, {
             method: "POST",
@@ -127,12 +142,6 @@ export const backendClient = {
 
     refreshWatchlist(): Promise<WatchlistRefreshResponse> {
         return request<WatchlistRefreshResponse>("/api/watchlist/refresh", {
-            method: "POST",
-        });
-    },
-
-    generateAIWatchlistReport(): Promise<AIWatchlistReportResponse> {
-        return request<AIWatchlistReportResponse>("/api/ai/watchlist/analyze", {
             method: "POST",
         });
     },
