@@ -94,6 +94,7 @@ export type AIReportResponse = {
     confidence: number;
     explanation: string;
     disclaimer: string;
+    fallbackReason?: string | null;
     createdAt: string;
 };
 
@@ -127,6 +128,62 @@ export type WatchlistRefreshResponse = {
     failedItems: number;
     items: WatchlistRefreshItemResponse[];
     refreshedAt: string;
+};
+
+export type PortfolioPositionRequest = {
+    ticker: string;
+    quantity: number;
+    averageBuyPrice: number;
+};
+
+export type PortfolioPositionResponse = {
+    id: string;
+    assetId: string;
+    ticker: string;
+    name: string;
+    assetType: AssetType;
+    exchange: string;
+    currency: string;
+    quantity: number;
+    averageBuyPrice: number;
+    investedAmount: number;
+    currentPrice: number;
+    currentValue: number;
+    profitLoss: number;
+    profitLossPercent: number;
+    priceSource: string;
+    priceTimestamp: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type PortfolioSummaryResponse = {
+    positionsCount: number;
+    totalInvested: number;
+    totalCurrentValue: number;
+    totalProfitLoss: number;
+    totalProfitLossPercent: number;
+    positions: PortfolioPositionResponse[];
+    calculatedAt: string;
+};
+
+export type AIPortfolioReportResponse = {
+    provider: AIProviderType;
+    positionsCount: number;
+    totalInvested: number;
+    totalCurrentValue: number;
+    totalProfitLoss: number;
+    totalProfitLossPercent: number;
+    summary: string;
+    positiveFactors: string[];
+    negativeFactors: string[];
+    riskLevel: RiskLevel;
+    riskScore: number;
+    confidence: number;
+    explanation: string;
+    disclaimer: string;
+    fallbackReason: string | null;
+    generatedAt: string;
 };
 
 export type ApiErrorResponse = {

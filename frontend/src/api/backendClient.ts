@@ -2,6 +2,7 @@ import type {
     AIProviderHealthResponse,
     AIProviderStatusResponse,
     AIReportResponse,
+    AIPortfolioReportResponse,
     AnalyticsSummaryResponse,
     ApiErrorResponse,
     AssetResponse,
@@ -9,6 +10,9 @@ import type {
     MarketDataProviderHealthResponse,
     MarketDataProviderStatusResponse,
     MarketPriceResponse,
+    PortfolioPositionRequest,
+    PortfolioPositionResponse,
+    PortfolioSummaryResponse,
     WatchlistItemResponse,
     WatchlistRefreshResponse,
 } from "../types/api";
@@ -122,6 +126,31 @@ export const backendClient = {
 
     refreshWatchlist(): Promise<WatchlistRefreshResponse> {
         return request<WatchlistRefreshResponse>("/api/watchlist/refresh", {
+            method: "POST",
+        });
+    },
+
+    getPortfolio(): Promise<PortfolioSummaryResponse> {
+        return request<PortfolioSummaryResponse>("/api/portfolio");
+    },
+
+    addPortfolioPosition(
+        position: PortfolioPositionRequest
+    ): Promise<PortfolioPositionResponse> {
+        return request<PortfolioPositionResponse>("/api/portfolio/positions", {
+            method: "POST",
+            body: JSON.stringify(position),
+        });
+    },
+
+    removePortfolioPosition(ticker: string): Promise<void> {
+        return request<void>(`/api/portfolio/positions/${ticker}`, {
+            method: "DELETE",
+        });
+    },
+
+    generateAIPortfolioReport(): Promise<AIPortfolioReportResponse> {
+        return request<AIPortfolioReportResponse>("/api/ai/portfolio/analyze", {
             method: "POST",
         });
     },

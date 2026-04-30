@@ -25,6 +25,9 @@ export function AppLayout() {
                     <NavLink to="/watchlist">
                         Watchlist
                     </NavLink>
+                    <NavLink to="/portfolio">
+                        Портфель
+                    </NavLink>
                 </nav>
             </header>
 
