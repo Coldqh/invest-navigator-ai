@@ -201,10 +201,18 @@ export type AICompareAssetSnapshot = {
     dataPoints: number;
 };
 
+export type AICompareAssetFactorsResponse = {
+    ticker: string;
+    name: string;
+    positiveFactors: string[];
+    negativeFactors: string[];
+};
+
 export type AICompareReportResponse = {
     provider: AIProviderType;
     assetsCount: number;
     assets: AICompareAssetSnapshot[];
+    assetFactors: AICompareAssetFactorsResponse[];
     summary: string;
     positiveFactors: string[];
     negativeFactors: string[];

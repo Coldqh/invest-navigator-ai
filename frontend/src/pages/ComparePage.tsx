@@ -207,23 +207,25 @@ export function ComparePage() {
                     </div>
 
                     <div className="ai-factors-grid">
-                        <div>
-                            <h3>Позитивные факторы</h3>
-                            <ul>
-                                {aiReport.positiveFactors.map((factor) => (
-                                    <li key={factor}>{factor}</li>
-                                ))}
-                            </ul>
-                        </div>
+                        {aiReport.assetFactors.map((assetFactors) => (
+                            <div key={assetFactors.ticker}>
+                                <h3>{assetFactors.ticker}</h3>
 
-                        <div>
-                            <h3>Негативные факторы</h3>
-                            <ul>
-                                {aiReport.negativeFactors.map((factor) => (
-                                    <li key={factor}>{factor}</li>
-                                ))}
-                            </ul>
-                        </div>
+                                <h4>Плюсы</h4>
+                                <ul>
+                                    {assetFactors.positiveFactors.map((factor) => (
+                                        <li key={factor}>{factor}</li>
+                                    ))}
+                                </ul>
+
+                                <h4>Минусы</h4>
+                                <ul>
+                                    {assetFactors.negativeFactors.map((factor) => (
+                                        <li key={factor}>{factor}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="ai-explanation">
